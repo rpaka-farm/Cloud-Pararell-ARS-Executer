@@ -59,6 +59,7 @@ async function main(event, context) {
       await changeContainerNums(1);
       const response = {
         success: false,
+        reasonCode: "CHANGE_CONTAINER_NUMS",
         reason: "コンテナの数を調整中です"
       }
       return {
@@ -70,7 +71,6 @@ async function main(event, context) {
         },
       };
     } else {
-      // 状況変更
       // 抽出指示
     }
 
@@ -205,11 +205,6 @@ async function changeContainerNums(containerNum) {
   };
   await ecs.updateService(params).promise();
   return true;
-}
-
-async function resetStatus() {
-  const ddb = new AWS.DynamoDB({region: 'us-east-1'});
-  
 }
 
 
