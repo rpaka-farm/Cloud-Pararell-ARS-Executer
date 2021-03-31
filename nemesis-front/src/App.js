@@ -1,23 +1,18 @@
-import logo from './logo.svg';
-import './App.css';
+import './App.scss';
+import {MDCRipple} from '@material/ripple';
 
 function App() {
+  window.onload = () => {
+    console.log('Hello.');
+    new MDCRipple(document.querySelector('.mdc-button'));
+  };
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="mdc-touch-target-wrapper">
+      <button className="mdc-button mdc-button--touch">
+        <span className="mdc-button__ripple"></span>
+        <span className="mdc-button__label">My Accessible Button</span>
+        <span className="mdc-button__touch"></span>
+      </button>
     </div>
   );
 }

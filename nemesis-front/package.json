@@ -6,21 +6,20 @@
     "@testing-library/jest-dom": "^5.11.10",
     "@testing-library/react": "^11.2.6",
     "@testing-library/user-event": "^12.8.3",
+    "material-components-web": "^10.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-scripts": "4.0.3",
+    "sass": "^1.32.8",
     "web-vitals": "^1.1.1"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "start": "SASS_PATH=./node_modules react-scripts start",
+    "build": "SASS_PATH=./node_modules react-scripts build",
   },
   "eslintConfig": {
     "extends": [
       "react-app",
-      "react-app/jest"
     ]
   },
   "browserslist": {
