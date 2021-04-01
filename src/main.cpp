@@ -162,9 +162,12 @@ int main()
   });
 
   svr.Post("/exec", [&](const httplib::Request &req, httplib::Response &res, const httplib::ContentReader &content_reader) {
+    json rescontent;
+
     if (req.is_multipart_form_data())
     {
-      res.set_content("Failed", "text/plain");
+      rescontent["success"] = false;
+      res.set_content(rescontent.dump(), "application/json");
     }
     else
     {
@@ -183,6 +186,7 @@ int main()
       {
         GL900CSVAdapter ad = GL900CSVAdapter(srcfile);
         ad.outputToUnifiedFormatFile(srcfile + "_U.csv");
+        std::string osrcfile = srcfile;
         srcfile = srcfile + "_U.csv";
 
         // int start_point = request_data["start_point"];
@@ -191,6 +195,7 @@ int main()
         int overlap = request_data["overlap"];
         int min_port = request_data["min_port"];
         int max_port = request_data["max_port"];
+        std::string uuid = request_data["uuid"];
 
         stars_config saconf = {window_size, overlap};
         ars_config aconf = {min_port, max_port};
@@ -239,6 +244,52 @@ int main()
         ofs.close();
 
         uploadResultFile(resfile);
+
+        //=============================================
+        // DDBに書き込む
+        Aws::Client::ClientConfiguration clientConfig;
+        Aws::DynamoDB::DynamoDBClient dynamoClient(clientConfig);
+        Aws::DynamoDB::Model::UpdateItemRequest request;
+        const Aws::String tableName = "nemesis-task";
+        request.SetTableName(tableName);
+        Aws::DynamoDB::Model::AttributeValue attribValue;
+        const Aws::String keyValue(uuid);
+        attribValue.SetS(keyValue);
+        request.AddKey("id", attribValue);
+
+        // Construct the SET update expression argument
+        Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+        request.SetUpdateExpression(update_expression);
+
+        Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+        expressionAttributeNames["#a"] = "resFile";
+        expressionAttributeNames["#b"] = "status";
+        request.SetExpressionAttributeNames(expressionAttributeNames);
+
+        // Construct attribute value argument
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
+        attributeUpdatedValue.SetS(Aws::String(resfile));
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+        attributeUpdatedValueB.SetN(4);
+        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+        expressionAttributeValues[":valueA"] = attributeUpdatedValue;
+        expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+        request.SetExpressionAttributeValues(expressionAttributeValues);
+
+        // Update the item
+        const Aws::DynamoDB::Model::UpdateItemOutcome &result = dynamoClient.UpdateItem(request);
+        if (!result.IsSuccess())
+        {
+          std::cout << result.GetError().GetMessage() << std::endl;
+        }
+        std::cout << "Item was updated" << std::endl;
+
+        // ファイル削除
+        fs::remove(srcfile);
+        fs::remove(osrcfile);
+        fs::remove(resfile);
+
+        //=============================================
 
         rescontent["success"] = true;
       }
