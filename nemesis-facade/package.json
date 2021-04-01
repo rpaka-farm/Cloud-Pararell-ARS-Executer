@@ -1,0 +1,22 @@
+{
+  "name": "hello_world",
+  "version": "1.0.0",
+  "description": "hello world sample for NodeJS",
+  "main": "app.js",
+  "repository": "https://github.com/awslabs/aws-sam-cli/tree/develop/samcli/local/init/templates/cookiecutter-aws-sam-hello-nodejs",
+  "author": "SAM CLI",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^0.21.1",
+    "uuid": "^3.3.2"
+  },
+  "scripts": {
+    "test": "sam local start-api -p 3031",
+    "deploy": "zip -r stars.zip . && aws s3 cp ./stars.zip s3://rpaka-codes/stars.zip && aws lambda update-function-code --function-name stars --s3-bucket rpaka-codes --s3-key stars.zip"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.815.0",
+    "chai": "^4.2.0",
+    "mocha": "^8.2.1"
+  }
+}
