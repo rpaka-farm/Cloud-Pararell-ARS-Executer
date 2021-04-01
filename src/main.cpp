@@ -4,6 +4,11 @@
 #include <aws/s3/S3Client.h>
 #include <aws/s3/model/GetObjectRequest.h>
 #include <aws/s3/model/PutObjectRequest.h>
+#include <aws/dynamodb/DynamoDBClient.h>
+#include <aws/dynamodb/model/AttributeDefinition.h>
+#include <aws/dynamodb/model/GetItemRequest.h>
+#include <aws/dynamodb/model/UpdateItemRequest.h>
+#include <aws/dynamodb/model/UpdateItemResult.h>
 #include <nlohmann/json.hpp>
 #include "httplib.h"
 #include "GL900CSVAdapter.hpp"
@@ -75,12 +80,18 @@ int main()
   });
 
   svr.Post("/extmeta", [&](const httplib::Request &req, httplib::Response &res, const httplib::ContentReader &content_reader) {
+    json rescontent;
+
     if (req.is_multipart_form_data())
     {
-      res.set_content("Failed", "text/plain");
+      rescontent["success"] = false;
+      res.set_content(rescontent.dump(), "application/json");
     }
     else
     {
+      rescontent["success"] = true;
+      res.set_content(rescontent.dump(), "application/json");
+
       status = 1;
       std::string body;
       content_reader([&](const char *data, size_t data_length) {
@@ -88,30 +99,65 @@ int main()
         return true;
       });
       json request_data = json::parse(body);
+      std::string uuid = request_data["uuid"];
       std::string srcfile = request_data["srcfile"];
 
-      json rescontent;
+      json meta;
 
       std::cout << "Start DL..." << std::endl;
       if (downloadSrcFile(srcfile))
       {
         GL900CSVAdapter ad = GL900CSVAdapter(srcfile);
         metadata md = ad.extractMetaData();
-        rescontent["success"] = true;
-        rescontent["measureInterval"] = std::to_string(md.measureInterval.count());
+        meta["measureInterval"] = std::to_string(md.measureInterval.count());
         auto ts = std::chrono::system_clock::to_time_t(md.start);
-        rescontent["start"] = std::ctime(&ts);
+        meta["start"] = std::ctime(&ts);
         auto tf = std::chrono::system_clock::to_time_t(md.finish);
-        rescontent["finish"] = std::ctime(&tf);
-        // ファイル削除<未実装>
-      }
-      else
-      {
-        rescontent["success"] = false;
-      }
+        meta["finish"] = std::ctime(&tf);
 
+        // DDBに書き込む
+        Aws::Client::ClientConfiguration clientConfig;
+        Aws::DynamoDB::DynamoDBClient dynamoClient(clientConfig);
+        Aws::DynamoDB::Model::UpdateItemRequest request;
+        const Aws::String tableName = "nemesis-task";
+        request.SetTableName(tableName);
+        Aws::DynamoDB::Model::AttributeValue attribValue;
+        const Aws::String keyValue(uuid);
+        attribValue.SetS(keyValue);
+        request.AddKey("id", attribValue);
+
+        // Construct the SET update expression argument
+        Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+        request.SetUpdateExpression(update_expression);
+
+        Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+        expressionAttributeNames["#a"] = "meta";
+        expressionAttributeNames["#b"] = "status";
+        request.SetExpressionAttributeNames(expressionAttributeNames);
+
+        // Construct attribute value argument
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
+        const Aws::String metas(meta.dump());
+        attributeUpdatedValue.SetS(metas);
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+        attributeUpdatedValueB.SetN(2);
+        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+        expressionAttributeValues[":valueA"] = attributeUpdatedValue;
+        expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+        request.SetExpressionAttributeValues(expressionAttributeValues);
+
+        // Update the item
+        const Aws::DynamoDB::Model::UpdateItemOutcome &result = dynamoClient.UpdateItem(request);
+        if (!result.IsSuccess())
+        {
+          std::cout << result.GetError().GetMessage() << std::endl;
+        }
+        std::cout << "Item was updated" << std::endl;
+
+        // ファイル削除
+        fs::remove(srcfile);
+      }
       status = 0;
-      res.set_content(rescontent.dump(), "application/json");
     }
   });
 
