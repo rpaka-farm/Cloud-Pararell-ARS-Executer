@@ -16,7 +16,15 @@ async function main(event, context) {
       body = JSON.parse(body);
     }
 
-    if (path == '/task' && httpMethod == 'POST') {
+    if (path == '/tasklist' && httpMethod == 'GET') {
+      const ddbres = await ddb.scan({
+        TableName : 'nemesis-task'
+      }).promise();
+      return makeResponse({
+        success: true,
+        ...ddbres.Items
+      });
+    } else if (path == '/task' && httpMethod == 'POST') {
       const uid = body.uuid;
       const ddbres = await ddb.get({
         TableName : 'nemesis-task',

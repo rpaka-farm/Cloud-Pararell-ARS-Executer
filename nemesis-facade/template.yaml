@@ -17,6 +17,11 @@ Resources:
       Handler: app.handler
       Runtime: nodejs12.x
       Events:
+        TaskList:
+          Type: Api
+          Properties:
+            Path: /tasklist
+            Method: get
         Task:
           Type: Api
           Properties:
