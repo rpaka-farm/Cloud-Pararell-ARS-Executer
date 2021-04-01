@@ -8,10 +8,22 @@ const axios = require('axios');
 */
 
 async function main(event, context) {
+  const ddb = new AWS.DynamoDB.DocumentClient({region: 'us-east-1'});
   const {path, httpMethod, body} = event;
 
-  if (path == '/regtask' && httpMethod == 'POST') {
-    const ddb = new AWS.DynamoDB.DocumentClient();
+  if (path == '/task' && httpMethod == 'POST') {
+    const uid = body.uuid;
+    const ddbres = await ddb.get({
+      TableName : 'nemesis-task',
+      Key: {
+        id: uid
+      }
+    }).promise();
+    return makeResponse({
+      success: false,
+      ...ddbres.Item
+    });
+  } else if (path == '/regtask' && httpMethod == 'POST') {
     const {srcfile} = body;
 
     //解析対象データの存在を確認
@@ -34,7 +46,7 @@ async function main(event, context) {
       TableName : 'nemesis-task',
       Item: {
          id: uid,
-         srcFileName: srcfile,
+         srcFile: srcfile,
          status: 0
       }
     }).promise();
@@ -44,8 +56,7 @@ async function main(event, context) {
       uuid: uid
     });
   } else if (path == '/runmetaext' && httpMethod == 'POST') {
-    const s3 = new AWS.S3({region: 'us-east-1'});
-    const {uuid} = body;
+    const uid = body.uuid;
 
     //解析可能な状態かを確認
     var status = await takeContainerStatus();
@@ -66,14 +77,29 @@ async function main(event, context) {
         reason: "コンテナの数を調整中です"
       });
     } else {
-      
+      const ddbres = await ddb.get({
+        TableName : 'nemesis-task',
+        Key: {
+          id: uid
+        }
+      }).promise();
+
+      const host = process.env.ENV == 'dev' ? 'localhost:8080' : containers.infos[0].host;
+      axios.post(`http://${host}/extmeta`, {
+        "srcfile": ddbres.Item.srcFile,
+        "uuid": uid
+      });
     }
 
     return makeResponse({
       success: true,
     });
   } else if (path == '/runtask' && httpMethod == 'POST') {
-    const s3 = new AWS.S3({region: 'us-east-1'});
+    const uid = body.uuid;
+    const window_size = body.window_size;
+    const overlap = body.overlap;
+    const min_port = body.min_port;
+    const max_port = body.max_port;
 
     // 状況を確認
     const status = await takeContainerStatus();
@@ -84,14 +110,42 @@ async function main(event, context) {
       });
     }
 
-    // 解析対象データの存在を確認
+    // メタデータの抽出を依頼
+    const containers = await findContainerDomain();
+    if (containers.count != 1) {
+      await changeContainerNums(1);
+      return makeResponse({
+        success: false,
+        reasonCode: "CHANGE_CONTAINER_NUMS",
+        reason: "コンテナの数を調整中です"
+      });
+    } else {
+      const ddbres = await ddb.get({
+        TableName : 'nemesis-task',
+        Key: {
+          id: uid
+        }
+      }).promise();
 
-    // コンテナ数の一致を確認
-    if (false) {
-      // 必要であればコンテナ数の増減を指示して一旦返す
-    } 
+      const host = process.env.ENV == 'dev' ? 'localhost:8080' : containers.infos[0].host;
+      axios.post(`http://${host}/exec`, {
+        "srcfile": ddbres.Item.srcFile,
+        "uuid": uid,
+        "window_size": window_size,
+        "overlap": overlap,
+        "min_port": min_port,
+        "max_port": max_port
+      });
 
-    // 解析を実行
+      return makeResponse({
+        success: true
+      });
+    }
+  } else if (path == '/finish' && httpMethod == 'GET') {
+    await changeContainerNums(0);
+    return makeResponse({
+      success: true
+    });
   }
   return makeResponse({
     success: true
@@ -115,25 +169,17 @@ function makeResponse(body, code = 200) {
 
 // 解析用コンテナ（ECS Task）の状況を確認
 async function takeContainerStatus() {
-  const ddb = new AWS.DynamoDB({region: 'us-east-1'});
-  var params = {
-    TableName: "stars-containers"
-   };
-  const ddbRes = await ddb.scan(params).promise();
-  const status = {};
-  status.count = ddbRes.Count ?? 0;
-  const allIdle = true;
-  if (Array.isArray(ddbRes.Items)) {
-    status.containers = {};
-    ddbRes.Items.forEach((item) => {
-      if (item.hostname) {
-        status.containers[item.hostname] = item.status;
-        if (item.status != 'idle') {
-          allIdle = false;
-        }
-      }
-    });
-    status.allIdle = allIdle;
+  const ecs = await findContainerDomain();
+  const status = {
+    allIdle: true
+  };
+  for (let i = 0; i < ecs.infos.length; i++) {
+    const host = process.env.ENV == 'dev' ? 'localhost:8080' : ecs.infos[i].host;
+    const res = await axios.get(`http://${host}/status`);
+    status[host] = res.data;
+    if (res.data !== 0) {
+      status.allIdle = false;
+    }
   }
   return status;
 }
