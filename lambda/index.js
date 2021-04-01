@@ -1,4 +1,5 @@
 const AWS = require('aws-sdk');
+const uuid = require('uuid');
 const axios = require('axios');
 
 /*
@@ -9,25 +10,17 @@ const axios = require('axios');
 async function main(event, context) {
   const {path, httpMethod, body} = event;
 
-  if (path == '/regtask' && httpMethod == 'POST') {
+  if (path == '/runmetaext' && httpMethod == 'POST') {
     const s3 = new AWS.S3({region: 'us-east-1'});
     const {srcfile} = body;
 
     //解析可能な状態かを確認
     var status = await takeContainerStatus();
     if (!status.allIdle) {
-      const response = {
+      return makeResponse({
         success: false,
         reason: "解析中です"
-      }
-      return {
-        statusCode: 200,
-        body: JSON.stringify(response),
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      };
+      });
     }
 
     //解析対象データの存在を確認
@@ -39,70 +32,38 @@ async function main(event, context) {
       const s3testRes = await s3.getObject(params).promise();
       console.log(s3testRes);
     } catch (e) {
-      const response = {
+      return makeResponse({
         success: false,
         reason: "解析対象ファイルが見つかりませんでした"
-      }
-      return {
-        statusCode: 200,
-        body: JSON.stringify(response),
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      };
+      });
     }
 
     // メタデータの抽出を依頼
     const containers = await findContainerDomain();
     if (containers.count != 1) {
       await changeContainerNums(1);
-      const response = {
+      return makeResponse({
         success: false,
         reasonCode: "CHANGE_CONTAINER_NUMS",
         reason: "コンテナの数を調整中です"
-      }
-      return {
-        statusCode: 200,
-        body: JSON.stringify(response),
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      };
+      });
     } else {
       // 抽出指示
     }
 
-    const response = {
+    return makeResponse({
       success: true,
-    }
-    return {
-      statusCode: 200,
-      body: JSON.stringify(response),
-      headers: {
-        "Content-Type": "application/json",
-        "Access-Control-Allow-Origin": "*",
-      },
-    };
+    });
   } else if (path == '/runtask' && httpMethod == 'POST') {
     const s3 = new AWS.S3({region: 'us-east-1'});
 
     // 状況を確認
     const status = await takeContainerStatus();
     if (!status.allIdle) {
-      const response = {
+      return makeResponse({
         success: false,
         reason: "解析中です"
-      }
-      return {
-        statusCode: 200,
-        body: JSON.stringify(response),
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-        },
-      };
+      });
     }
 
     // 解析対象データの存在を確認
@@ -114,12 +75,19 @@ async function main(event, context) {
 
     // 解析を実行
   }
-  const response = {
+  return makeResponse({
     success: true
-  }
+  });
+}
+
+/*------.
+| Utils |
+`-------*/
+// レスポンスを作成
+function makeResponse(body, code = 200) {
   return {
-    statusCode: 200,
-    body: JSON.stringify(response),
+    statusCode: code,
+    body: JSON.stringify(body),
     headers: {
       "Content-Type": "application/json",
       "Access-Control-Allow-Origin": "*",
@@ -127,9 +95,6 @@ async function main(event, context) {
   };
 }
 
-/*------.
-| Utils |
-`-------*/
 // 解析用コンテナ（ECS Task）の状況を確認
 async function takeContainerStatus() {
   const ddb = new AWS.DynamoDB({region: 'us-east-1'});
