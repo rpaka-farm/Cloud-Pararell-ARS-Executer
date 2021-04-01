@@ -15,12 +15,9 @@ async function main(event, context) {
     if (typeof body === "string") {
       body = JSON.parse(body);
     }
-    console.log(JSON.stringify(body));
-    console.log(JSON.stringify(body.uuid));
 
     if (path == '/task' && httpMethod == 'POST') {
       const uid = body.uuid;
-      console.log(uid);
       const ddbres = await ddb.get({
         TableName : 'nemesis-task',
         Key: {

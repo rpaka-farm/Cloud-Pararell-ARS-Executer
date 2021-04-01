@@ -22,6 +22,26 @@ Resources:
           Properties:
             Path: /task
             Method: post
+        RegTask:
+          Type: Api
+          Properties:
+            Path: /regtask
+            Method: post
+        RunMetaExt:
+          Type: Api
+          Properties:
+            Path: /runmetaext
+            Method: post
+        RunTask:
+          Type: Api
+          Properties:
+            Path: /runtask
+            Method: post
+        Finish:
+          Type: Api
+          Properties:
+            Path: /finish
+            Method: get
 
 Outputs:
   NemesisFacadeApi:
