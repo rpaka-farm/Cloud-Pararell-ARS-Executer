@@ -10,18 +10,9 @@ const axios = require('axios');
 async function main(event, context) {
   const {path, httpMethod, body} = event;
 
-  if (path == '/runmetaext' && httpMethod == 'POST') {
-    const s3 = new AWS.S3({region: 'us-east-1'});
+  if (path == '/regtask' && httpMethod == 'POST') {
+    const ddb = new AWS.DynamoDB.DocumentClient();
     const {srcfile} = body;
-
-    //解析可能な状態かを確認
-    var status = await takeContainerStatus();
-    if (!status.allIdle) {
-      return makeResponse({
-        success: false,
-        reason: "解析中です"
-      });
-    }
 
     //解析対象データの存在を確認
     try {
@@ -38,6 +29,33 @@ async function main(event, context) {
       });
     }
 
+    const uid = uuid.v4();
+    await ddb.put({
+      TableName : 'nemesis-task',
+      Item: {
+         id: uid,
+         srcFileName: srcfile,
+         status: 0
+      }
+    }).promise();
+
+    return makeResponse({
+      success: true,
+      uuid: uid
+    });
+  } else if (path == '/runmetaext' && httpMethod == 'POST') {
+    const s3 = new AWS.S3({region: 'us-east-1'});
+    const {uuid} = body;
+
+    //解析可能な状態かを確認
+    var status = await takeContainerStatus();
+    if (!status.allIdle) {
+      return makeResponse({
+        success: false,
+        reason: "解析中です"
+      });
+    }
+
     // メタデータの抽出を依頼
     const containers = await findContainerDomain();
     if (containers.count != 1) {
@@ -48,7 +66,7 @@ async function main(event, context) {
         reason: "コンテナの数を調整中です"
       });
     } else {
-      // 抽出指示
+      
     }
 
     return makeResponse({
