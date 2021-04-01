@@ -3,4 +3,4 @@
 
 - nemesis-executor : ECRコンテナのソースファイルです。C++で記述されており、Dockerコンテナの構成ファイルを含みます。
 - nemesis-facade : ECRコンテナを操作するAPI, その実体のLambda関数のソースファイルです。Javascript（Node.js）で記述されており、AWS SAM CLIによるローカル実行環境が構築されています。
-- nemesis-front : ウェブブラウザ上で動作するNemesisのWebクライアントです。S3に対する解析対象ファイルのアップロード、nemesis-facadeを用いた解析の実行や結果の確認、解析結果のファイルのダウンロードが行えます。
+- nemesis-front : ウェブブラウザ上で動作するNemesisのWebクライアントです。React.jsを用いて構築しています。S3に対する解析対象ファイルのアップロード、nemesis-facadeを用いた解析の実行や結果の確認、解析結果のファイルのダウンロードが行えます。
