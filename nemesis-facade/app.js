@@ -22,7 +22,7 @@ async function main(event, context) {
       }).promise();
       return makeResponse({
         success: true,
-        ...ddbres.Items
+        items: ddbres.Items
       });
     } else if (path == '/task' && httpMethod == 'POST') {
       const uid = body.uuid;
