@@ -9,11 +9,43 @@ import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
 import axios from 'axios';
 
+const FACADE_HOST = 'localhost:3031';
+
 function App() {
+  const facade = axios.create({
+    baseURL: FACADE_HOST
+  });
+
   const [srcfiles, setSrcfiles] = useState([{
     label: 'DUMMY',
     status: 0
   }]);
+
+  const updateSrcFiles = async function() {
+    const items = await listSrcFiles();
+    setSrcfiles(
+      items.map((item) => {
+        return {
+          label: item.Key,
+          status: 1
+        }
+      })
+    );
+  }
+
+  const addUploadingSrcFile = function(fileName) {
+    const currentSrcFiles = [...srcfiles];
+    currentSrcFiles.push({
+      label: fileName,
+      status: 0
+    });
+    console.log(currentSrcFiles);
+    setSrcfiles(currentSrcFiles);
+  }
+
+  const addRegisteringTask = function(fileName) {
+    facade.post('/')
+  }
 
   window.onload = () => {
     console.log('Hello.');
@@ -25,15 +57,7 @@ function App() {
   };
 
   useEffect(async () => {
-    const items = await listSrcFiles();
-    setSrcfiles(
-      items.map((item) => {
-        return {
-          label: item.Key,
-          status: 0
-        }
-      })
-    );
+    updateSrcFiles();
   }, []);
 
   return (
@@ -81,12 +105,21 @@ function App() {
         </header>
         <main className="mdc-top-app-bar--fixed-adjust">
           <div style={{padding: 10}}>
-            <Dropzone onDrop={acceptedFiles => uploadToCloud(acceptedFiles)}>
+            <h1>ファイル一覧</h1>
+
+            <Dropzone onDrop={acceptedFiles => uploadToCloud(acceptedFiles, () => {addUploadingSrcFile(acceptedFiles[0].name)}, () => {updateSrcFiles();})}>
               {({getRootProps, getInputProps}) => (
                 <section>
                   <div {...getRootProps()}>
                     <input {...getInputProps()} />
-                    <p>追加するにはファイルをここにドラッグアンドドロップしてください。</p>
+                    <p style={{
+                      backgroundColor: '#eeeeee',
+                      paddingTop: 30,
+                      paddingBottom: 30,
+                      paddingRight: 10,
+                      paddingLeft: 10,
+                      border: '3px dotted #555555'
+                    }}>追加するにはファイルをここにドラッグアンドドロップしてください。</p>
                   </div>
                 </section>
               )}
@@ -98,20 +131,20 @@ function App() {
                   return <div key={idx} style={{display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%'}}>
                     <div style={{flexGrow: 1}}>{srcfile.label}</div>
                     {
-                      srcfile.status === 1 ? 
+                      srcfile.status === 0 ? 
                         <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
                     }
                     <div style={{marginRight: 10}}>
                       {
                         srcfile.status === 0 ? 
-                        "解析待機中" : "解析中"
+                          "アップロード中" : "タスク登録可能"
                       }
                     </div>
                     <div>
                       <div className="mdc-touch-target-wrapper">
                         <button className="mdc-button mdc-button--touch mdc-button--raised">
                           <span className="mdc-button__ripple"></span>
-                          <span className="mdc-button__label"><b>解析開始</b></span>
+                          <span className="mdc-button__label"><b>タスク登録</b></span>
                           <span className="mdc-button__touch"></span>
                         </button>
                       </div>
@@ -129,7 +162,7 @@ function App() {
   );
 }
 
-function uploadToCloud(files) {
+function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
   var bucketName = "stars-src";
   var bucketRegion = "us-east-1";
   var IdentityPoolId = "us-east-1:e303e91d-b49d-4fbb-99b0-7b37453e0516";
@@ -160,11 +193,10 @@ function uploadToCloud(files) {
     }
   });
 
-  var promise = upload.promise();
-
-  promise.then(
+  startCb();
+  upload.promise().then(
     function(data) {
-      alert("Successfully uploaded photo.");
+      finishCb();
     },
     function(err) {
       return alert("There was an error uploading your photo: ", err.message);
