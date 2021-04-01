@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.3)
 
 set(CMAKE_CXX_STANDARD 20)
-project(app LANGUAGES CXX)
+project(app LANGUAGES CXX C)
 set(CMAKE_CXX_FLAGS "-std=c++20")
 
 #Set the location of where Windows can find the installed libraries of the SDK.
@@ -15,7 +15,7 @@ message(STATUS "CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 set(BUILD_SHARED_LIBS ON CACHE STRING "Link to shared libraries by default.")
 
 #Load required services/packages: This basic example uses S3.
-find_package(AWSSDK REQUIRED COMPONENTS s3)
+find_package(AWSSDK REQUIRED COMPONENTS s3 dynamodb)
 find_package(httplib)
 find_package(nlohmann_json)
 add_executable(${PROJECT_NAME} src/main.cpp src/GL900CSVAdapter.cpp src/STARS.cpp src/ARS.cpp) #Add app's main starting file.
@@ -27,7 +27,7 @@ if(MSVC AND BUILD_SHARED_LIBS)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_IMPORT_EXPORT")
     add_definitions(-DUSE_IMPORT_EXPORT)
     # Copy relevant AWS SDK for C++ libraries into the current binary directory for running and debugging.
-    list(APPEND SERVICE_LIST s3)
+    list(APPEND SERVICE_LIST s3 dynamodb)
    
     #For IDE's like Xcode and Visual Studio this line will be ignored because Release/Debug 
     #  is switched internally, but this is necessary for non-IDE builds.

@@ -57,10 +57,10 @@ RM = /usr/local/Cellar/cmake/3.20.0/bin/cmake -E rm -f
 EQUALS = =
 
 # The top-level source directory on which CMake was run.
-CMAKE_SOURCE_DIR = /Users/ritsu2891/Dropbox/Academic/Research/J03_BeautySalon
+CMAKE_SOURCE_DIR = /Users/ritsu2891/ProjectRepositories/STARS-Cloud
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /Users/ritsu2891/Dropbox/Academic/Research/J03_BeautySalon
+CMAKE_BINARY_DIR = /Users/ritsu2891/ProjectRepositories/STARS-Cloud
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -87,9 +87,9 @@ edit_cache/fast: edit_cache
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/ritsu2891/Dropbox/Academic/Research/J03_BeautySalon/CMakeFiles /Users/ritsu2891/Dropbox/Academic/Research/J03_BeautySalon//CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/ritsu2891/ProjectRepositories/STARS-Cloud/CMakeFiles /Users/ritsu2891/ProjectRepositories/STARS-Cloud//CMakeFiles/progress.marks
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /Users/ritsu2891/Dropbox/Academic/Research/J03_BeautySalon/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /Users/ritsu2891/ProjectRepositories/STARS-Cloud/CMakeFiles 0
 .PHONY : all
 
 # The main clean target
