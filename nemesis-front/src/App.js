@@ -77,6 +77,21 @@ function App() {
     });
   }
 
+  const addMetaExtractingTask = function(task) {
+    let currentTasks = [...tasks];
+    currentTasks = currentTasks.map((task_i) => {
+      if (task_i.uuid === task.uuid) {
+        task_i.status = 2;
+      }
+      return task_i;
+    });
+    setTasks(currentTasks);
+    facade.post('/runmetaext', task).then((res) => {
+      console.log(res.data);
+      updateTask();
+    });
+  }
+
   window.onload = () => {
     console.log('Hello.');
     new MDCRipple(document.querySelector('.mdc-button'));
@@ -89,6 +104,8 @@ function App() {
   useEffect(async () => {
     updateSrcFiles();
     updateTask();
+    const res = await axios.get(`http://localhost:8080/status`);
+    console.log(res.data);
   }, []);
 
   return (
@@ -243,7 +260,17 @@ function App() {
                             5: false,
                             99: true,
                           }[task.status]
-                        } className="mdc-button mdc-button--touch mdc-button--raised">
+                        } className="mdc-button mdc-button--touch mdc-button--raised" onClick={
+                          {
+                            0: () => {},
+                            1: () => {addMetaExtractingTask(task);}, //メタ情報抽出
+                            2: () => {},
+                            3: () => {},
+                            4: () => {},
+                            5: () => {},
+                            99: () => {},
+                          }[task.status]
+                        }>
                           <span className="mdc-button__ripple"></span>
                           <span className="mdc-button__label"><b>
                           {

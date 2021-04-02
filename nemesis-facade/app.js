@@ -1,6 +1,11 @@
 const AWS = require('aws-sdk');
 const uuid = require('uuid');
 const axios = require('axios');
+const dotenv = require('dotenv');
+const debug = require('debug')('debug-name');
+dotenv.config();
+
+const DEV_EXEC_HOST = "234ec2867024.ngrok.io";
 
 /*
 { name: 'privateDnsName', value: 'ip-10-0-0-91.ec2.internal' }
@@ -49,7 +54,7 @@ async function main(event, context) {
         var s3 = new AWS.S3({region: 'us-east-1'});
         const s3testRes = await s3.getObject(params).promise();
       } catch (e) {
-        console.log(e);
+        debug(e);
         return makeResponse({
           success: false,
           reason: "解析対象ファイルが見つかりませんでした"
@@ -74,6 +79,7 @@ async function main(event, context) {
       const uid = body.uuid;
 
       //解析可能な状態かを確認
+      console.log('AAc');
       var status = await takeContainerStatus();
       if (!status.allIdle) {
         return makeResponse({
@@ -83,6 +89,7 @@ async function main(event, context) {
       }
 
       // メタデータの抽出を依頼
+      console.log('AAa');
       const containers = await findContainerDomain();
       if (containers.count != 1) {
         await changeContainerNums(1);
@@ -92,6 +99,7 @@ async function main(event, context) {
           reason: "コンテナの数を調整中です"
         });
       } else {
+        console.log('AAb');
         const ddbres = await ddb.get({
           TableName : 'nemesis-task',
           Key: {
@@ -99,7 +107,9 @@ async function main(event, context) {
           }
         }).promise();
 
-        const host = process.env.ENV == 'dev' ? 'localhost:8080' : containers.infos[0].host;
+        console.log('AA');
+        console.log(process.env.ENV);
+        const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : containers.infos[0].host;
         axios.post(`http://${host}/extmeta`, {
           "srcfile": ddbres.Item.srcFile,
           "uuid": uid
@@ -142,7 +152,7 @@ async function main(event, context) {
           }
         }).promise();
 
-        const host = process.env.ENV == 'dev' ? 'localhost:8080' : containers.infos[0].host;
+        const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : containers.infos[0].host;
         axios.post(`http://${host}/exec`, {
           "srcfile": ddbres.Item.srcFile,
           "uuid": uid,
@@ -166,8 +176,11 @@ async function main(event, context) {
       success: true
     });
   } catch (e) {
+    console.log(JSON.stringify(e));
     return makeResponse({
-      success: false
+      success: false,
+      reasonCode: "INTERNAL_ERROR",
+      reason: "内部エラーです"
     });
   }
 }
@@ -194,8 +207,10 @@ async function takeContainerStatus() {
     allIdle: true
   };
   for (let i = 0; i < ecs.infos.length; i++) {
-    const host = process.env.ENV == 'dev' ? 'localhost:8080' : ecs.infos[i].host;
+    const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : ecs.infos[i].host;
+    console.log(`http://${host}/status`);
     const res = await axios.get(`http://${host}/status`);
+    console.log(res.data);
     status[host] = res.data;
     if (res.data !== 0) {
       status.allIdle = false;

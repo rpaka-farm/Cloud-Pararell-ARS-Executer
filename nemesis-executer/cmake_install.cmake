@@ -1,4 +1,4 @@
-# Install script for directory: /Users/ritsu2891/ProjectRepositories/STARS-Cloud/nemesis-executer
+# Install script for directory: /Users/ritsu2891/ProjectRepositories/Nemesis/nemesis-executer
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -45,5 +45,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/Users/ritsu2891/ProjectRepositories/STARS-Cloud/nemesis-executer/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/Users/ritsu2891/ProjectRepositories/Nemesis/nemesis-executer/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

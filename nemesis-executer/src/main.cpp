@@ -70,12 +70,15 @@ int main()
   status = 0;
 
   svr.Get("/hi", [](const httplib::Request &, httplib::Response &res) {
+    res.set_header("Access-Control-Allow-Origin", "*");
     res.set_content("Hello World!", "text/plain");
   });
 
   svr.Get("/status", [](const httplib::Request &, httplib::Response &res) {
+    res.set_header("Access-Control-Allow-Origin", "*");
     char str_buf[10];
     std::sprintf(str_buf, "%d", status);
+    // res.set_content("Hello World! status", "text/plain");
     res.set_content(str_buf, "text/plain");
   });
 
@@ -140,7 +143,7 @@ int main()
         const Aws::String metas(meta.dump());
         attributeUpdatedValue.SetS(metas);
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(2);
+        attributeUpdatedValueB.SetN(3);
         Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         expressionAttributeValues[":valueA"] = attributeUpdatedValue;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;

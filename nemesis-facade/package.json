@@ -8,6 +8,7 @@
   "license": "MIT",
   "dependencies": {
     "axios": "^0.21.1",
+    "dotenv": "^8.2.0",
     "uuid": "^3.3.2"
   },
   "scripts": {
@@ -17,6 +18,7 @@
   "devDependencies": {
     "aws-sdk": "^2.815.0",
     "chai": "^4.2.0",
+    "debug": "^4.3.1",
     "mocha": "^8.2.1"
   }
 }
