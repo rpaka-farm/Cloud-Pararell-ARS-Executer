@@ -45,7 +45,7 @@ function App() {
         return {
           uuid: task.id,
           srcFile: task.srcFile ?? 'ファイル名無し',
-          status: 0
+          status: task.status
         }
       })
     );
@@ -62,7 +62,19 @@ function App() {
   }
 
   const addRegisteringTask = function(fileName) {
-    facade.post('/')
+    const currentTasks = [...tasks];
+    currentTasks.push({
+      uuid: '生成中',
+      srcFile: fileName,
+      status: 0
+    });
+    setTasks(currentTasks);
+    facade.post('/regtask', {
+      srcfile: fileName
+    }).then((res) => {
+      console.log(res.data);
+      updateTask();
+    });
   }
 
   window.onload = () => {
@@ -161,7 +173,11 @@ function App() {
                     </div>
                     <div>
                       <div className="mdc-touch-target-wrapper">
-                        <button className="mdc-button mdc-button--touch mdc-button--raised">
+                        <button className="mdc-button mdc-button--touch mdc-button--raised" onClick={
+                          () => {
+                            addRegisteringTask(srcfile.label);
+                          }
+                        }>
                           <span className="mdc-button__ripple"></span>
                           <span className="mdc-button__label"><b>タスク登録</b></span>
                           <span className="mdc-button__touch"></span>
@@ -178,23 +194,40 @@ function App() {
               {
                 tasks.map((task, idx) => {
                   return <div key={idx} style={{display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%'}}>
-                    <div style={{flexGrow: 1}}>{task.srcFile}</div>
+                    <div style={{flexGrow: 1}}>
+                      {task.srcFile}（UUID:{task.uuid}）
+                    </div>
                     {
-                      false ? 
+                      task.status === 0 || task.status === 2 || task.status === 4 ? 
                         <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
                     }
                     <div style={{marginRight: 10}}>
                       {
-                        false === 0 ? 
-                          "アップロード中" : "タスク登録可能"
+                        {
+                          0: '登録中...',
+                          1: 'メタ情報抽出待機中',
+                          2: 'メタ情報抽出中',
+                          3: '解析待機中',
+                          4: '解析中',
+                          5: '解析完了'
+                        }[task.status]
                       }
                     </div>
                     <div>
                       <div className="mdc-touch-target-wrapper">
-                        <button className="mdc-button mdc-button--touch mdc-button--raised">
+                        <button disabled={task.status === 0 || task.status === 2 || task.status === 4} className="mdc-button mdc-button--touch mdc-button--raised">
                           <span className="mdc-button__ripple"></span>
                           <span className="mdc-button__label"><b>
-                            タスク登録
+                          {
+                            {
+                              0: 'お待ちください',
+                              1: 'メタ情報抽出開始',
+                              2: 'お待ちください',
+                              3: '解析開始',
+                              4: 'お待ちください',
+                              5: '解析結果DL'
+                            }[task.status]
+                          }
                           </b></span>
                           <span className="mdc-button__touch"></span>
                         </button>
