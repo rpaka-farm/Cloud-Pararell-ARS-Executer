@@ -16,14 +16,14 @@ const facade = axios.create({
 
 function App() {
   const [srcfiles, setSrcfiles] = useState([{
-    label: 'DUMMY',
-    status: 0
+    label: '取得中です...',
+    status: 99
   }]);
 
   const [tasks, setTasks] = useState([{
-    uuid: 'DUMMY UUID',
-    srcFile: 'DUMMY SRC',
-    status: 0
+    uuid: '---',
+    srcFile: '取得中です...',
+    status: 99
   }]);
 
   const updateSrcFiles = async function() {
@@ -162,13 +162,16 @@ function App() {
                   return <div key={idx} style={{display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%'}}>
                     <div style={{flexGrow: 1}}>{srcfile.label}</div>
                     {
-                      srcfile.status === 0 ? 
+                      srcfile.status === 0 || srcfile.status === 99 ? 
                         <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
                     }
                     <div style={{marginRight: 10}}>
                       {
-                        srcfile.status === 0 ? 
-                          "アップロード中" : "タスク登録可能"
+                        {
+                          0: 'アップロード中',
+                          1: 'タスク登録可能',
+                          99: '---'
+                        }[srcfile.status]
                       }
                     </div>
                     <div>
@@ -177,9 +180,23 @@ function App() {
                           () => {
                             addRegisteringTask(srcfile.label);
                           }
+                        } disabled={
+                          {
+                            0: true,
+                            1: false,
+                            99: true
+                          }[srcfile.status]
                         }>
                           <span className="mdc-button__ripple"></span>
-                          <span className="mdc-button__label"><b>タスク登録</b></span>
+                          <span className="mdc-button__label"><b>
+                          {
+                            {
+                              0: 'お待ちください',
+                              1: 'タスク登録',
+                              99: 'お待ちください'
+                            }[srcfile.status]
+                          }
+                          </b></span>
                           <span className="mdc-button__touch"></span>
                         </button>
                       </div>
@@ -198,7 +215,7 @@ function App() {
                       {task.srcFile}（UUID:{task.uuid}）
                     </div>
                     {
-                      task.status === 0 || task.status === 2 || task.status === 4 ? 
+                      task.status === 0 || task.status === 2 || task.status === 4 || task.status === 99 ? 
                         <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
                     }
                     <div style={{marginRight: 10}}>
@@ -209,13 +226,24 @@ function App() {
                           2: 'メタ情報抽出中',
                           3: '解析待機中',
                           4: '解析中',
-                          5: '解析完了'
+                          5: '解析完了',
+                          99: '---'
                         }[task.status]
                       }
                     </div>
                     <div>
                       <div className="mdc-touch-target-wrapper">
-                        <button disabled={task.status === 0 || task.status === 2 || task.status === 4} className="mdc-button mdc-button--touch mdc-button--raised">
+                        <button disabled={
+                          {
+                            0: true,
+                            1: false,
+                            2: true,
+                            3: false,
+                            4: true,
+                            5: false,
+                            99: true,
+                          }[task.status]
+                        } className="mdc-button mdc-button--touch mdc-button--raised">
                           <span className="mdc-button__ripple"></span>
                           <span className="mdc-button__label"><b>
                           {
@@ -225,7 +253,8 @@ function App() {
                               2: 'お待ちください',
                               3: '解析開始',
                               4: 'お待ちください',
-                              5: '解析結果DL'
+                              5: '解析結果DL',
+                              99: 'お待ちください'
                             }[task.status]
                           }
                           </b></span>
