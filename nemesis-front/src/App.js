@@ -9,15 +9,20 @@ import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
 import axios from 'axios';
 
-const FACADE_HOST = 'localhost:3031';
+const FACADE_HOST = 'http://localhost:3031';
+const facade = axios.create({
+  baseURL: FACADE_HOST
+});
 
 function App() {
-  const facade = axios.create({
-    baseURL: FACADE_HOST
-  });
-
   const [srcfiles, setSrcfiles] = useState([{
     label: 'DUMMY',
+    status: 0
+  }]);
+
+  const [tasks, setTasks] = useState([{
+    uuid: 'DUMMY UUID',
+    srcFile: 'DUMMY SRC',
     status: 0
   }]);
 
@@ -28,6 +33,19 @@ function App() {
         return {
           label: item.Key,
           status: 1
+        }
+      })
+    );
+  }
+
+  const updateTask = async function() {
+    const tasks = await listTasks();
+    setTasks(
+      tasks.map((task) => {
+        return {
+          uuid: task.id,
+          srcFile: task.srcFile ?? 'ファイル名無し',
+          status: 0
         }
       })
     );
@@ -58,6 +76,7 @@ function App() {
 
   useEffect(async () => {
     updateSrcFiles();
+    updateTask();
   }, []);
 
   return (
@@ -153,11 +172,42 @@ function App() {
                 })
               }
             </div>
+
+            <h1>タスク一覧</h1>
+            <div>
+              {
+                tasks.map((task, idx) => {
+                  return <div key={idx} style={{display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%'}}>
+                    <div style={{flexGrow: 1}}>{task.srcFile}</div>
+                    {
+                      false ? 
+                        <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
+                    }
+                    <div style={{marginRight: 10}}>
+                      {
+                        false === 0 ? 
+                          "アップロード中" : "タスク登録可能"
+                      }
+                    </div>
+                    <div>
+                      <div className="mdc-touch-target-wrapper">
+                        <button className="mdc-button mdc-button--touch mdc-button--raised">
+                          <span className="mdc-button__ripple"></span>
+                          <span className="mdc-button__label"><b>
+                            タスク登録
+                          </b></span>
+                          <span className="mdc-button__touch"></span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                })
+              }
+            </div>
+
           </div>
         </main>
       </div>
-
-      
     </div>
   );
 }
@@ -223,6 +273,17 @@ async function listSrcFiles() {
 
   const res = await s3.listObjects({ Delimiter: "/" }).promise();
   return res.Contents;
+}
+
+async function listTasks() {
+  const facadeRes = await facade.get('/tasklist');
+  if (facadeRes.data) {
+    if (facadeRes.data.success ?? false) {
+      return facadeRes.data.items ?? [];
+    } else {
+      return [];
+    }
+  }
 }
 
 async function execMetaExtract() {
