@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const debug = require('debug')('debug-name');
 dotenv.config();
 
-const DEV_EXEC_HOST = "234ec2867024.ngrok.io";
+const DEV_EXEC_HOST = "47d262d2ee17.ngrok.io";
 
 /*
 { name: 'privateDnsName', value: 'ip-10-0-0-91.ec2.internal' }
@@ -77,6 +77,19 @@ async function main(event, context) {
       });
     } else if (path == '/runmetaext' && httpMethod == 'POST') {
       const uid = body.uuid;
+
+      //タスクの状態を更新
+      await ddb.update({
+        TableName: 'nemesis-task',
+        Key: {
+          id: uid
+        },
+        UpdateExpression: 'set #a = :av',
+        ExpressionAttributeNames: {'#a' : 'status'},
+        ExpressionAttributeValues: {
+          ':av' : 2
+        }
+      }).promise();
 
       //解析可能な状態かを確認
       console.log('AAc');

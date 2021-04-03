@@ -39,9 +39,9 @@ function App() {
   }
 
   const updateTask = async function() {
-    const tasks = await listTasks();
+    const ctasks = await listTasks();
     setTasks(
-      tasks.map((task) => {
+      ctasks.map((task) => {
         return {
           uuid: task.id,
           srcFile: task.srcFile ?? 'ファイル名無し',
@@ -86,10 +86,38 @@ function App() {
       return task_i;
     });
     setTasks(currentTasks);
+    console.log(task);
     facade.post('/runmetaext', task).then((res) => {
       console.log(res.data);
-      updateTask();
+      if (res.data.success) {
+        metaExtractWaitLoop(task);
+      } else {
+        updateTask();
+      }
     });
+  }
+
+  let metaExtractWaitLoop = async function(t_task) {
+    console.log('metaExtractWaitLoop');
+    let tasks = await listTasks();
+    tasks = tasks.map((task) => {
+      return {
+        uuid: task.id,
+        srcFile: task.srcFile ?? 'ファイル名無し',
+        status: task.status
+      }
+    });
+    const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
+    console.log(c_t_task);
+    if (c_t_task) {
+      if (c_t_task.status !== 3) {
+        console.log('A');
+        window.setTimeout(() => metaExtractWaitLoop(t_task), 5000);
+      } else {
+        console.log('B');
+        await updateTask();
+      }
+    }
   }
 
   window.onload = () => {
@@ -103,13 +131,12 @@ function App() {
 
   useEffect(async () => {
     updateSrcFiles();
-    updateTask();
-    const res = await axios.get(`http://localhost:8080/status`);
-    console.log(res.data);
+    await updateTask();
   }, []);
 
   return (
     <div style={{display: 'flex', flexDirection: 'row', minHeight: '100vh'}}>
+      <button onClick={() => {metaExtractWaitLoop({uuid: '24cf3184-9ff4-41e5-af6a-abc7a111868e'})}}>A</button>
       <div>
         <aside className="mdc-drawer">
           <div className="mdc-drawer__header">
