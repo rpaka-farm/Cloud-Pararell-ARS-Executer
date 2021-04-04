@@ -118,12 +118,13 @@ function App() {
   }
 
   const openRunTaskDialog = function (uuid) {
-    if (dialogtfs.length == 5) {
+    if (dialogtfs.length === 5) {
       dialogtfs[4].value = uuid;
     }
     dialog.open();
   };
 
+  // eslint-disable-next-line
   const addEsecuteTask = async function (option) {
     let currentTasks = await listTasks();
     currentTasks = currentTasks.map((task_i) => {
@@ -182,14 +183,17 @@ function App() {
     list.wrapFocus = true;
   };
 
-  useEffect(async () => {
-    updateSrcFiles();
-    await updateTask();
-    let ts = [];
-    document.querySelectorAll('.mdc-text-field').forEach((elem) => {ts.push(new MDCTextField(elem));});
-    setdialogtfs(ts);
-    const dialog_i = new MDCDialog(document.querySelector('.mdc-dialog'));
-    setdialog(dialog_i);
+  useEffect(() => {
+    const fn = async () => {
+      updateSrcFiles();
+      await updateTask();
+      let ts = [];
+      document.querySelectorAll('.mdc-text-field').forEach((elem) => {ts.push(new MDCTextField(elem));});
+      setdialogtfs(ts);
+      const dialog_i = new MDCDialog(document.querySelector('.mdc-dialog'));
+      setdialog(dialog_i);
+    };
+    fn();
   }, []);
 
   useEffect(() => {
@@ -203,17 +207,16 @@ function App() {
               'min_port', 'max_port',
               'uuid'
             ];
-            option[what[i]] = (i != 4) ? Number(t.value) : t.value;
+            option[what[i]] = (i !== 4) ? Number(t.value) : t.value;
           });
           addEsecuteTask(option);
         }
       });
     }
-  }, [dialog, dialogtfs]);
+  }, [dialog, dialogtfs, addEsecuteTask]);
 
   return (
     <div style={{display: 'flex', flexDirection: 'row', minHeight: '100vh'}}>
-      <button onClick={() => {metaExtractWaitLoop({uuid: '24cf3184-9ff4-41e5-af6a-abc7a111868e'})}}>A</button>
       <div>
         <aside className="mdc-drawer">
           <div className="mdc-drawer__header">
@@ -489,11 +492,6 @@ function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
     })
   });
 
-  var s3 = new AWS.S3({
-    apiVersion: "2006-03-01",
-    params: { Bucket: bucketName }
-  });
-
   if (!files.length) {
     return alert("Please choose a file to upload first.");
   }
@@ -549,10 +547,6 @@ async function listTasks() {
       return [];
     }
   }
-}
-
-async function execMetaExtract() {
-  
 }
 
 export default App;
