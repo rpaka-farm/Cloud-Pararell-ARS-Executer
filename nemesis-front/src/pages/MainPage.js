@@ -68,13 +68,20 @@ function MainPage() {
     }
   }
 
-  const addUploadingSrcFile = function(fileName) {
+  const addUploadingSrcFile = async function(file) {
+    const fileName = file.name;
     const currentSrcFiles = [...srcfiles];
     currentSrcFiles.push({
       label: fileName,
       status: FileStatus.UPLOADING
     });
     setSrcfiles(currentSrcFiles);
+
+    const uploadRes = await uploadToCloud(file);
+    if (!uploadRes.success) {
+      showSnackBar(uploadRes.reason);
+    }
+    updateSrcFiles();
   }
 
   const addRegisteringTask = function(fileName) {
@@ -182,7 +189,7 @@ function MainPage() {
       <div style={{padding: 10}}>
         <h1>ファイル一覧</h1>
 
-        <Dropzone onDrop={acceptedFiles => uploadToCloud(acceptedFiles, () => {addUploadingSrcFile(acceptedFiles[0].name)}, () => {updateSrcFiles();})}>
+        <Dropzone onDrop={acceptedFiles => addUploadingSrcFile(acceptedFiles[0])}>
           {({getRootProps, getInputProps}) => (
             <section>
               <div {...getRootProps()}>
@@ -360,7 +367,7 @@ function MainPage() {
   );
 }
 
-function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
+async function uploadToCloud(file) {
   var bucketName = "stars-src";
   var bucketRegion = "us-east-1";
   var IdentityPoolId = "us-east-1:e303e91d-b49d-4fbb-99b0-7b37453e0516";
@@ -372,13 +379,12 @@ function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
     })
   });
 
-  if (!files.length) {
-    finishCb({
+  if (!file) {
+    return {
       success: false,
       reason: "ファイルを選んでください"
-    });
+    };
   }
-  var file = files[0];
   var fileName = file.name;
 
   var upload = new AWS.S3.ManagedUpload({
@@ -389,20 +395,17 @@ function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
     }
   });
 
-  startCb();
-  upload.promise().then(
-    function(data) {
-      finishCb({
-        success: true
-      });
-    },
-    function(err) {
-      finishCb({
-        success: false,
-        reason: `S3へのアップロードに失敗しました: ${err.message}`
-      });
-    }
-  );
+  try {
+    const data = await upload.promise();
+    return {
+      success: true
+    };
+  } catch (e) {
+    return {
+      success: false,
+      reason: `S3へのアップロードに失敗しました。`
+    };
+  }
 }
 
 async function listSrcFiles() {
