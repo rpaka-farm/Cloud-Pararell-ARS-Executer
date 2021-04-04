@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import AWS from 'aws-sdk';
 import {MDCDialog} from '@material/dialog';
 import {MDCTextField} from '@material/textfield';
+import {MDCSnackbar} from '@material/snackbar';
 import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
 import {FacadeClient} from '../lib/apiClient';
@@ -23,6 +24,14 @@ function MainPage() {
 
   const [dialog, setdialog] = useState(undefined);
   const [dialogtfs, setdialogtfs] = useState([]);
+  const [snackBar, setSnackBar] = useState(undefined);
+
+  const showSnackBar = function(labelText) {
+    if (snackBar) {
+      snackBar.labelText = labelText;
+      snackBar.open();
+    }
+  }
 
   const updateSrcFiles = async function() {
     const items = await listSrcFiles();
@@ -125,6 +134,8 @@ function MainPage() {
       setdialogtfs(ts);
       const dialog_i = new MDCDialog(document.querySelector('.mdc-dialog'));
       setdialog(dialog_i);
+      const snackbar_i = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
+      setSnackBar(snackbar_i);
     };
     fn();
   }, []);
@@ -311,6 +322,20 @@ function MainPage() {
           </div>
         </div>
         <div className="mdc-dialog__scrim"></div>
+      </div>
+
+      <div className="mdc-snackbar">
+        <div className="mdc-snackbar__surface" role="status" aria-relevant="additions">
+          <div className="mdc-snackbar__label" aria-atomic="false">
+            バナーメッセージ
+          </div>
+          <div className="mdc-snackbar__actions" aria-atomic="true">
+            <button type="button" className="mdc-button mdc-snackbar__action">
+              <div className="mdc-button__ripple"></div>
+              <span className="mdc-button__label">OK</span>
+            </button>
+          </div>
+        </div>
       </div>
 
     </main>
