@@ -6,7 +6,8 @@ import {MDCTextField} from '@material/textfield';
 import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
 import {FacadeClient} from '../lib/apiClient';
-import {FileStatus, FileStatusLabel, FileActionButton, TaskStatus, TaskStatusLabel, TaskActionButton} from '../lib/statusDefinition'
+import {FileStatus, FileStatusLabel, FileActionButton, TaskStatus, TaskStatusLabel, TaskActionButton} from '../lib/statusDefinition';
+import {updateLocalItemStatus, getSpecificUuidItem, waitFotStatusChanged} from '../lib/util';
 
 function MainPage() {
   const [srcfiles, setSrcfiles] = useState([{
@@ -71,40 +72,14 @@ function MainPage() {
   }
 
   const addMetaExtractingTask = function(task) {
-    let currentTasks = [...tasks];
-    currentTasks = currentTasks.map((task_i) => {
-      if (task_i.uuid === task.uuid) {
-        task_i.status = TaskStatus.META_EXTRACTING;
-      }
-      return task_i;
-    });
-    setTasks(currentTasks);
+    updateLocalItemStatus(tasks, setTasks, task.uuid, TaskStatus.META_EXTRACTING);
     FacadeClient.metaDataExtract(task).then((res) => {
       if (res.data.success) {
-        metaExtractWaitLoop(task);
+        waitFotStatusChanged(listTasks, task.uuid, TaskStatus.READY_FOR_EXECUTE, updateTask)
       } else {
         updateTask();
       }
     });
-  }
-
-  let metaExtractWaitLoop = async function(t_task) {
-    let tasks = await listTasks();
-    tasks = tasks.map((task) => {
-      return {
-        uuid: task.id,
-        srcFile: task.srcFile ?? 'ファイル名無し',
-        status: task.status
-      }
-    });
-    const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
-    if (c_t_task) {
-      if (c_t_task.status !== TaskStatus.READY_FOR_EXECUTE) {
-        window.setTimeout(() => metaExtractWaitLoop(t_task), 5000);
-      } else {
-        await updateTask();
-      }
-    }
   }
 
   const openRunTaskDialog = function (uuid) {
@@ -116,50 +91,18 @@ function MainPage() {
 
   // eslint-disable-next-line
   const addEsecuteTask = async function (option) {
-    let currentTasks = await listTasks();
-    currentTasks = currentTasks.map((task_i) => {
-      if (task_i.uuid === option.uuid) {
-        task_i.status = TaskStatus.EXECUTING;
-      }
-      return task_i;
-    });
-    setTasks(currentTasks);
+    updateLocalItemStatus(tasks, setTasks, option.uuid, TaskStatus.EXECUTING);
     FacadeClient.execute(option).then((res) => {
       if (res.data.success) {
-        executeWaitLoop(option);
+        waitFotStatusChanged(listTasks, option.uuid, TaskStatus.DONE_EXECUTE, updateTask)
       } else {
         updateTask();
       }
     });
   };
 
-  let executeWaitLoop = async function(option) {
-    let tasks = await listTasks();
-    tasks = tasks.map((task) => {
-      return {
-        uuid: task.id,
-        status: task.status
-      }
-    });
-    const c_t_task = (tasks.filter((task) => task.uuid === option.uuid))[0];
-    if (c_t_task) {
-      if (c_t_task.status !== TaskStatus.DONE_EXECUTE) {
-        window.setTimeout(() => executeWaitLoop(option), 10000);
-      } else {
-        await updateTask();
-      }
-    }
-  }
-
   const dlResFile = async function(t_task) {
-    let tasks = await listTasks();
-    tasks = tasks.map((task) => {
-      return {
-        uuid: task.id,
-        resFile: task.resFile
-      }
-    });
-    const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
+    const c_t_task = getSpecificUuidItem(listTasks, t_task.uuid);
     if (c_t_task && c_t_task.resFile) {
       window.open(`https://stars-res.s3.amazonaws.com/${c_t_task.resFile}`);
     }
