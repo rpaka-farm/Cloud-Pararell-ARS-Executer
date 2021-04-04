@@ -273,7 +273,7 @@ int main()
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
         attributeUpdatedValue.SetS(Aws::String(resfile));
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(4);
+        attributeUpdatedValueB.SetN(5);
         Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         expressionAttributeValues[":valueA"] = attributeUpdatedValue;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;

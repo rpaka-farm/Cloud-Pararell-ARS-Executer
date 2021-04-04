@@ -5,7 +5,7 @@ const dotenv = require('dotenv');
 const debug = require('debug')('debug-name');
 dotenv.config();
 
-const DEV_EXEC_HOST = "47d262d2ee17.ngrok.io";
+const DEV_EXEC_HOST = "312680a1aaa2.ngrok.io";
 
 /*
 { name: 'privateDnsName', value: 'ip-10-0-0-91.ec2.internal' }
@@ -158,6 +158,19 @@ async function main(event, context) {
           reason: "コンテナの数を調整中です"
         });
       } else {
+        //タスクの状態を更新
+        await ddb.update({
+          TableName: 'nemesis-task',
+          Key: {
+            id: uid
+          },
+          UpdateExpression: 'set #a = :av',
+          ExpressionAttributeNames: {'#a' : 'status'},
+          ExpressionAttributeValues: {
+            ':av' : 4
+          }
+        }).promise();
+
         const ddbres = await ddb.get({
           TableName : 'nemesis-task',
           Key: {

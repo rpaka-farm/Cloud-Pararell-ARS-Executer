@@ -4,6 +4,8 @@ import AWS from 'aws-sdk';
 import {MDCRipple} from '@material/ripple';
 import {MDCTopAppBar} from '@material/top-app-bar';
 import {MDCList} from "@material/list";
+import {MDCDialog} from '@material/dialog';
+import {MDCTextField} from '@material/textfield';
 // import {MDCDrawer} from "@material/drawer";
 import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
@@ -25,6 +27,9 @@ function App() {
     srcFile: '取得中です...',
     status: 99
   }]);
+
+  const [dialog, setdialog] = useState(undefined);
+  const [dialogtfs, setdialogtfs] = useState([]);
 
   const updateSrcFiles = async function() {
     const items = await listSrcFiles();
@@ -57,7 +62,6 @@ function App() {
       label: fileName,
       status: 0
     });
-    console.log(currentSrcFiles);
     setSrcfiles(currentSrcFiles);
   }
 
@@ -72,7 +76,6 @@ function App() {
     facade.post('/regtask', {
       srcfile: fileName
     }).then((res) => {
-      console.log(res.data);
       updateTask();
     });
   }
@@ -86,9 +89,7 @@ function App() {
       return task_i;
     });
     setTasks(currentTasks);
-    console.log(task);
     facade.post('/runmetaext', task).then((res) => {
-      console.log(res.data);
       if (res.data.success) {
         metaExtractWaitLoop(task);
       } else {
@@ -98,7 +99,6 @@ function App() {
   }
 
   let metaExtractWaitLoop = async function(t_task) {
-    console.log('metaExtractWaitLoop');
     let tasks = await listTasks();
     tasks = tasks.map((task) => {
       return {
@@ -108,31 +108,108 @@ function App() {
       }
     });
     const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
-    console.log(c_t_task);
     if (c_t_task) {
       if (c_t_task.status !== 3) {
-        console.log('A');
         window.setTimeout(() => metaExtractWaitLoop(t_task), 5000);
       } else {
-        console.log('B');
         await updateTask();
       }
     }
   }
 
+  const openRunTaskDialog = function (uuid) {
+    if (dialogtfs.length == 5) {
+      dialogtfs[4].value = uuid;
+    }
+    dialog.open();
+  };
+
+  const addEsecuteTask = async function (option) {
+    let currentTasks = await listTasks();
+    currentTasks = currentTasks.map((task_i) => {
+      if (task_i.uuid === option.uuid) {
+        task_i.status = 4;
+      }
+      return task_i;
+    });
+    setTasks(currentTasks);
+    facade.post('/runtask', option).then((res) => {
+      if (res.data.success) {
+        executeWaitLoop(option);
+      } else {
+        updateTask();
+      }
+    });
+  };
+
+  let executeWaitLoop = async function(option) {
+    let tasks = await listTasks();
+    tasks = tasks.map((task) => {
+      return {
+        uuid: task.id,
+        status: task.status
+      }
+    });
+    const c_t_task = (tasks.filter((task) => task.uuid === option.uuid))[0];
+    if (c_t_task) {
+      if (c_t_task.status !== 5) {
+        window.setTimeout(() => executeWaitLoop(option), 10000);
+      } else {
+        await updateTask();
+      }
+    }
+  }
+
+  const dlResFile = async function(t_task) {
+    let tasks = await listTasks();
+    tasks = tasks.map((task) => {
+      return {
+        uuid: task.id,
+        resFile: task.resFile
+      }
+    });
+    const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
+    if (c_t_task && c_t_task.resFile) {
+      window.open(`https://stars-res.s3.amazonaws.com/${c_t_task.resFile}`);
+    }
+  }
+
   window.onload = () => {
-    console.log('Hello.');
-    new MDCRipple(document.querySelector('.mdc-button'));
+    let bs = [];
+    document.querySelectorAll('.mdc-button').forEach((elem) => {bs.push(new MDCRipple(elem));});
     new MDCTopAppBar(document.querySelector('.mdc-top-app-bar'));
     const list = new MDCList(document.querySelector('.mdc-list'));
     list.wrapFocus = true;
-    // MDCDrawer.attachTo(document.querySelector('.mdc-drawer'));
   };
 
   useEffect(async () => {
     updateSrcFiles();
     await updateTask();
+    let ts = [];
+    document.querySelectorAll('.mdc-text-field').forEach((elem) => {ts.push(new MDCTextField(elem));});
+    setdialogtfs(ts);
+    const dialog_i = new MDCDialog(document.querySelector('.mdc-dialog'));
+    setdialog(dialog_i);
   }, []);
+
+  useEffect(() => {
+    if (dialog) {
+      dialog.listen('MDCDialog:closed', (ev) => {
+        if (ev.detail.action === "accept") {
+          const option = {};
+          dialogtfs.forEach((t,i) => {
+            const what = [
+              'window_size', 'overlap',
+              'min_port', 'max_port',
+              'uuid'
+            ];
+            option[what[i]] = (i != 4) ? Number(t.value) : t.value;
+          });
+          addEsecuteTask(option);
+        }
+      });
+    }
+  }, [dialog, dialogtfs]);
 
   return (
     <div style={{display: 'flex', flexDirection: 'row', minHeight: '100vh'}}>
@@ -292,9 +369,9 @@ function App() {
                             0: () => {},
                             1: () => {addMetaExtractingTask(task);}, //メタ情報抽出
                             2: () => {},
-                            3: () => {},
+                            3: () => {openRunTaskDialog(task.uuid);}, //解析
                             4: () => {},
-                            5: () => {},
+                            5: () => {dlResFile(task)}, //結果DL
                             99: () => {},
                           }[task.status]
                         }>
@@ -322,6 +399,78 @@ function App() {
             </div>
 
           </div>
+
+          <div className="mdc-dialog">
+            <div className="mdc-dialog__container">
+              <div className="mdc-dialog__surface"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="my-dialog-title"
+                aria-describedby="my-dialog-content">
+                <h2 className="mdc-dialog__title" id="my-dialog-title">STARS解析設定</h2>
+                <div className="mdc-dialog__content" id="my-dialog-content">
+                  <label className="mdc-text-field mdc-text-field--filled">
+                    <span className="mdc-text-field__ripple"></span>
+                    <span className="mdc-floating-label" id="starsconf::window_size">ウィンドウサイズ</span>
+                    <input className="mdc-text-field__input" type="number" />
+                    <span className="mdc-line-ripple"></span>
+                  </label>
+                  <div className="mdc-text-field-helper-line">
+                    <div className="mdc-text-field-helper-text" aria-hidden="true">ARSを一回実行するのに使うサンプル数です</div>
+                  </div>
+
+                  <label className="mdc-text-field mdc-text-field--filled">
+                    <span className="mdc-text-field__ripple"></span>
+                    <span className="mdc-floating-label" id="starsconf::overlap">オーバーラップ</span>
+                    <input className="mdc-text-field__input" type="number" />
+                    <span className="mdc-line-ripple"></span>
+                  </label>
+                  <div className="mdc-text-field-helper-line">
+                    <div className="mdc-text-field-helper-text" aria-hidden="true">ウィンドウをどれだけ重ねて移動させるかのサンプル数です</div>
+                  </div>
+
+                  <label className="mdc-text-field mdc-text-field--filled">
+                    <span className="mdc-text-field__ripple"></span>
+                    <span className="mdc-floating-label" id="starsconf::min_port">ARS最小ポート</span>
+                    <input className="mdc-text-field__input" type="number" />
+                    <span className="mdc-line-ripple"></span>
+                  </label>
+                  <div className="mdc-text-field-helper-line">
+                    <div className="mdc-text-field-helper-text" aria-hidden="true">ARSを適用する最小の周期のサンプル数です</div>
+                  </div>
+
+                  <label className="mdc-text-field mdc-text-field--filled">
+                    <span className="mdc-text-field__ripple"></span>
+                    <span className="mdc-floating-label" id="starsconf::max_port">ARS最大ポート</span>
+                    <input className="mdc-text-field__input" type="number" />
+                    <span className="mdc-line-ripple"></span>
+                  </label>
+                  <div className="mdc-text-field-helper-line">
+                    <div className="mdc-text-field-helper-text" aria-hidden="true">ARSを適用する最大の周期のサンプル数です</div>
+                  </div>
+
+                  <label className="mdc-text-field mdc-text-field--filled">
+                    <span className="mdc-text-field__ripple"></span>
+                    <span className="mdc-floating-label" id="starsconf::uuid">UUID</span>
+                    <input className="mdc-text-field__input" disabled={true} />
+                    <span className="mdc-line-ripple"></span>
+                  </label>
+                </div>
+                <div className="mdc-dialog__actions">
+                  <button type="button" className="mdc-button mdc-dialog__button" data-mdc-dialog-action="close">
+                    <div className="mdc-button__ripple"></div>
+                    <span className="mdc-button__label">キャンセル</span>
+                  </button>
+                  <button type="button" className="mdc-button mdc-dialog__button" data-mdc-dialog-action="accept">
+                    <div className="mdc-button__ripple"></div>
+                    <span className="mdc-button__label">実行</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="mdc-dialog__scrim"></div>
+          </div>
+
         </main>
       </div>
     </div>

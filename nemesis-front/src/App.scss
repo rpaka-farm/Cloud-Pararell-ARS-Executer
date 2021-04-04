@@ -2,12 +2,19 @@
 @use "@material/top-app-bar/mdc-top-app-bar";
 @use "@material/drawer";
 @use "@material/list";
+@use "@material/dialog";
+@use "@material/floating-label/mdc-floating-label";
+@use "@material/line-ripple/mdc-line-ripple";
+@use "@material/notched-outline/mdc-notched-outline";
+@use "@material/textfield";
 
 @include button.styles;
 @include drawer.core-styles;
 @include drawer.dismissible-core-styles;
 @include drawer.modal-core-styles;
 @include list.core-styles;
+@include dialog.core-styles;
+@include textfield.core-styles;
 
 .App {
   & .foo {
