@@ -9,14 +9,19 @@ function updateLocalItemStatus(items, setItems, uuid, newStatus) {
 }
 
 async function getSpecificUuidItem(itemGetFn, uuid) {
-  let items = await itemGetFn();
-  return (items.filter((item) => item.id === uuid))[0] ?? null;
+  let res = await itemGetFn();
+  if (res.success) {
+    const items = res.items;
+    return (items.filter((item) => item.id === uuid))[0] ?? null;
+  } else {
+    return null;
+  }
 }
 
 async function waitFotStatusChanged(itemGetFn, uuid, desiredStatus, doneCb) {
   const target_item = await getSpecificUuidItem(itemGetFn, uuid);
   if (target_item) {
-    if (target_item !== desiredStatus) {
+    if (target_item.status !== desiredStatus) {
       window.setTimeout(
         () => waitFotStatusChanged(itemGetFn, uuid, desiredStatus, doneCb),
         5000

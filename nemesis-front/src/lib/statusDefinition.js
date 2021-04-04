@@ -32,6 +32,7 @@ const TaskStatus = {
   READY_FOR_EXECUTE: 3,
   EXECUTING: 4,
   DONE_EXECUTE: 5,
+  DL_RESULT: 6,
   INIT: 99
 };
 
@@ -42,6 +43,7 @@ const TaskStatusLabel = {
   3: '解析待機中',
   4: '解析中',
   5: '解析完了',
+  6: '解析結果DL中',
   99: '---'
 }
 
@@ -69,6 +71,10 @@ const TaskActionButton = {
   5: {
     wait: false,
     label: '解析結果DL'
+  },
+  6: {
+    wait: true,
+    label: 'お待ちください'
   },
   99: {
     wait: true,

@@ -84,7 +84,7 @@ function MainPage() {
     updateSrcFiles();
   }
 
-  const addRegisteringTask = function(fileName) {
+  const addRegisteringTask = async function(fileName) {
     const currentTasks = [...tasks];
     currentTasks.push({
       uuid: '生成中',
@@ -92,20 +92,24 @@ function MainPage() {
       status: TaskStatus.REGISTERING
     });
     setTasks(currentTasks);
-    FacadeClient.registerTask(fileName).then(() => {
-      updateTask();
-    });
+    const facadeRes = await FacadeClient.registerTask(fileName);
+    if (!facadeRes.success) {
+      showSnackBar(facadeRes.reason);
+    }
+    updateTask();
   }
 
-  const addMetaExtractingTask = function(task) {
+  const addMetaExtractingTask = async function(task) {
     updateLocalItemStatus(tasks, setTasks, task.uuid, TaskStatus.META_EXTRACTING);
-    FacadeClient.metaDataExtract(task).then((res) => {
-      if (res.data.success) {
-        waitFotStatusChanged(listTasks, task.uuid, TaskStatus.READY_FOR_EXECUTE, updateTask)
-      } else {
-        updateTask();
-      }
-    });
+    const facadeRes = await FacadeClient.metaDataExtract(task);
+    console.log(facadeRes);
+    if (facadeRes.success) {
+      showSnackBar("メタ情報の抽出を実行中です。この操作には時間がかかります。");
+      waitFotStatusChanged(listTasks, task.uuid, TaskStatus.READY_FOR_EXECUTE, updateTask);
+    } else {
+      showSnackBar(facadeRes.reason);
+      updateTask();
+    }
   }
 
   const openRunTaskDialog = function (uuid) {
@@ -118,20 +122,26 @@ function MainPage() {
   // eslint-disable-next-line
   const addEsecuteTask = async function (option) {
     updateLocalItemStatus(tasks, setTasks, option.uuid, TaskStatus.EXECUTING);
-    FacadeClient.execute(option).then((res) => {
-      if (res.data.success) {
-        waitFotStatusChanged(listTasks, option.uuid, TaskStatus.DONE_EXECUTE, updateTask)
-      } else {
-        updateTask();
-      }
-    });
+    const facadeRes = await FacadeClient.execute(option);
+    if (facadeRes.success) {
+      showSnackBar("解析を実行中です。この操作には時間がかかります。");
+      waitFotStatusChanged(listTasks, option.uuid, TaskStatus.DONE_EXECUTE, updateTask)
+    } else {
+      showSnackBar(facadeRes.reason);
+      updateTask();
+    }
   };
 
   const dlResFile = async function(t_task) {
-    const c_t_task = getSpecificUuidItem(listTasks, t_task.uuid);
+    updateLocalItemStatus(tasks, setTasks, t_task.uuid, TaskStatus.DL_RESULT);
+    showSnackBar("ダウンロードURLを取得中です。しばらくお待ちください。");
+    const c_t_task = await getSpecificUuidItem(listTasks, t_task.uuid);
     if (c_t_task && c_t_task.resFile) {
       window.open(`https://stars-res.s3.amazonaws.com/${c_t_task.resFile}`);
+    } else {
+      showSnackBar('結果ファイルの情報の取得に失敗しました。');
     }
+    updateTask();
   }
 
   // window.onload = () => {
@@ -440,11 +450,8 @@ async function listSrcFiles() {
   }
 }
 
-async function listTasks() {
-  const facadeRes = await FacadeClient.listAllTask();
-  if (facadeRes.data) {
-    return facadeRes.data;
-  }
+function listTasks() {
+  return FacadeClient.listAllTask();
 }
 
 export default MainPage;

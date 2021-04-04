@@ -78,41 +78,37 @@ async function main(event, context) {
     } else if (path == '/runmetaext' && httpMethod == 'POST') {
       const uid = body.uuid;
 
-      //タスクの状態を更新
-      await ddb.update({
-        TableName: 'nemesis-task',
-        Key: {
-          id: uid
-        },
-        UpdateExpression: 'set #a = :av',
-        ExpressionAttributeNames: {'#a' : 'status'},
-        ExpressionAttributeValues: {
-          ':av' : 2
-        }
-      }).promise();
-
       //解析可能な状態かを確認
-      console.log('AAc');
       var status = await takeContainerStatus();
       if (!status.allIdle) {
         return makeResponse({
           success: false,
-          reason: "解析中です"
+          reason: "他のタスクを実行中です。"
         });
       }
 
       // メタデータの抽出を依頼
-      console.log('AAa');
       const containers = await findContainerDomain();
       if (containers.count != 1) {
         await changeContainerNums(1);
         return makeResponse({
           success: false,
-          reasonCode: "CHANGE_CONTAINER_NUMS",
-          reason: "コンテナの数を調整中です"
+          reason: "コンテナの数を調整中です。しばらく待ってから再度お試し下さい。"
         });
       } else {
-        console.log('AAb');
+        //タスクの状態を更新
+        await ddb.update({
+          TableName: 'nemesis-task',
+          Key: {
+            id: uid
+          },
+          UpdateExpression: 'set #a = :av',
+          ExpressionAttributeNames: {'#a' : 'status'},
+          ExpressionAttributeValues: {
+            ':av' : 2
+          }
+        }).promise();
+
         const ddbres = await ddb.get({
           TableName : 'nemesis-task',
           Key: {
@@ -120,8 +116,6 @@ async function main(event, context) {
           }
         }).promise();
 
-        console.log('AA');
-        console.log(process.env.ENV);
         const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : containers.infos[0].host;
         axios.post(`http://${host}/extmeta`, {
           "srcfile": ddbres.Item.srcFile,
@@ -144,7 +138,7 @@ async function main(event, context) {
       if (!status.allIdle) {
         return makeResponse({
           success: false,
-          reason: "解析中です"
+          reason: "他のタスクを実行中です。"
         });
       }
 
@@ -155,7 +149,7 @@ async function main(event, context) {
         return makeResponse({
           success: false,
           reasonCode: "CHANGE_CONTAINER_NUMS",
-          reason: "コンテナの数を調整中です"
+          reason: "コンテナの数を調整中です。しばらく待ってから再度お試し下さい。"
         });
       } else {
         //タスクの状態を更新

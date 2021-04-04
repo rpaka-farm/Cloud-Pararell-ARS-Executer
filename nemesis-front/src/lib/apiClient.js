@@ -1,23 +1,43 @@
 import axios from 'axios';
 
 const FACADE_HOST = 'http://localhost:3031';
+
+async function extract(fn) {
+  try {
+    const res = await fn();
+    if (res.data) {
+      return res.data;
+    } else {
+      return {
+        success: false,
+        reason: "ネットワークエラー"
+      }
+    }
+  } catch (e) {
+    return {
+      success: false,
+      reason: "ネットワークエラー"
+    }
+  }
+}
+
 const facade = axios.create({
   baseURL: FACADE_HOST
 });
 const FacadeClient = {
   registerTask: (fileName) => {
-    return facade.post('/regtask', {
+    return extract(() => facade.post('/regtask', {
       srcfile: fileName
-    });
+    }));
   },
   metaDataExtract: (task) => {
-    return facade.post('/runmetaext', task);
+    return extract(() => facade.post('/runmetaext', task));
   },
   execute: (option) => {
-    return facade.post('/runtask', option);
+    return extract(() => facade.post('/runtask', option));
   },
   listAllTask: () => {
-    return facade.get('/tasklist');
+    return extract(() => facade.get('/tasklist'));
   }
 }
 
