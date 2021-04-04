@@ -1,31 +1,23 @@
 import '../App.scss';
 import React, {useEffect, useState} from 'react';
 import AWS from 'aws-sdk';
-import {MDCRipple} from '@material/ripple';
-import {MDCTopAppBar} from '@material/top-app-bar';
-import {MDCList} from "@material/list";
 import {MDCDialog} from '@material/dialog';
 import {MDCTextField} from '@material/textfield';
-// import {MDCDrawer} from "@material/drawer";
 import Dropzone from 'react-dropzone';
 import MDSpinner from "react-md-spinner";
-import axios from 'axios';
-
-const FACADE_HOST = 'http://localhost:3031';
-const facade = axios.create({
-  baseURL: FACADE_HOST
-});
+import {FacadeClient} from '../lib/apiClient';
+import {FileStatus, FileStatusLabel, FileActionButton, TaskStatus, TaskStatusLabel, TaskActionButton} from '../lib/statusDefinition'
 
 function MainPage() {
   const [srcfiles, setSrcfiles] = useState([{
     label: '取得中です...',
-    status: 99
+    status: FileStatus.INIT
   }]);
 
   const [tasks, setTasks] = useState([{
     uuid: '---',
     srcFile: '取得中です...',
-    status: 99
+    status: TaskStatus.INIT
   }]);
 
   const [dialog, setdialog] = useState(undefined);
@@ -37,7 +29,7 @@ function MainPage() {
       items.map((item) => {
         return {
           label: item.Key,
-          status: 1
+          status: FileStatus.READY
         }
       })
     );
@@ -60,7 +52,7 @@ function MainPage() {
     const currentSrcFiles = [...srcfiles];
     currentSrcFiles.push({
       label: fileName,
-      status: 0
+      status: FileStatus.UPLOADING
     });
     setSrcfiles(currentSrcFiles);
   }
@@ -70,12 +62,10 @@ function MainPage() {
     currentTasks.push({
       uuid: '生成中',
       srcFile: fileName,
-      status: 0
+      status: TaskStatus.REGISTERING
     });
     setTasks(currentTasks);
-    facade.post('/regtask', {
-      srcfile: fileName
-    }).then((res) => {
+    FacadeClient.registerTask(fileName).then(() => {
       updateTask();
     });
   }
@@ -84,12 +74,12 @@ function MainPage() {
     let currentTasks = [...tasks];
     currentTasks = currentTasks.map((task_i) => {
       if (task_i.uuid === task.uuid) {
-        task_i.status = 2;
+        task_i.status = TaskStatus.META_EXTRACTING;
       }
       return task_i;
     });
     setTasks(currentTasks);
-    facade.post('/runmetaext', task).then((res) => {
+    FacadeClient.metaDataExtract(task).then((res) => {
       if (res.data.success) {
         metaExtractWaitLoop(task);
       } else {
@@ -109,7 +99,7 @@ function MainPage() {
     });
     const c_t_task = (tasks.filter((task) => task.uuid === t_task.uuid))[0];
     if (c_t_task) {
-      if (c_t_task.status !== 3) {
+      if (c_t_task.status !== TaskStatus.READY_FOR_EXECUTE) {
         window.setTimeout(() => metaExtractWaitLoop(t_task), 5000);
       } else {
         await updateTask();
@@ -129,12 +119,12 @@ function MainPage() {
     let currentTasks = await listTasks();
     currentTasks = currentTasks.map((task_i) => {
       if (task_i.uuid === option.uuid) {
-        task_i.status = 4;
+        task_i.status = TaskStatus.EXECUTING;
       }
       return task_i;
     });
     setTasks(currentTasks);
-    facade.post('/runtask', option).then((res) => {
+    FacadeClient.execute(option).then((res) => {
       if (res.data.success) {
         executeWaitLoop(option);
       } else {
@@ -153,7 +143,7 @@ function MainPage() {
     });
     const c_t_task = (tasks.filter((task) => task.uuid === option.uuid))[0];
     if (c_t_task) {
-      if (c_t_task.status !== 5) {
+      if (c_t_task.status !== TaskStatus.DONE_EXECUTE) {
         window.setTimeout(() => executeWaitLoop(option), 10000);
       } else {
         await updateTask();
@@ -225,14 +215,7 @@ function MainPage() {
             <section>
               <div {...getRootProps()}>
                 <input {...getInputProps()} />
-                <p style={{
-                  backgroundColor: '#eeeeee',
-                  paddingTop: 30,
-                  paddingBottom: 30,
-                  paddingRight: 10,
-                  paddingLeft: 10,
-                  border: '3px dotted #555555'
-                }}>追加するにはファイルをここにドラッグアンドドロップしてください。</p>
+                <p className="dand">追加するにはファイルをここにドラッグアンドドロップしてください。</p>
               </div>
             </section>
           )}
@@ -243,18 +226,9 @@ function MainPage() {
             srcfiles.map((srcfile, idx) => {
               return <div key={idx} style={{display: 'flex', flexDirection: 'row', alignItems: 'center', width: '100%'}}>
                 <div style={{flexGrow: 1}}>{srcfile.label}</div>
-                {
-                  srcfile.status === 0 || srcfile.status === 99 ? 
-                    <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
-                }
+                  {(FileActionButton[srcfile.status]).wait ?? false ? <div style={{marginRight: 10}}><MDSpinner /></div> : <></>}
                 <div style={{marginRight: 10}}>
-                  {
-                    {
-                      0: 'アップロード中',
-                      1: 'タスク登録可能',
-                      99: '---'
-                    }[srcfile.status]
-                  }
+                  {FileStatusLabel[srcfile.status]}
                 </div>
                 <div>
                   <div className="mdc-touch-target-wrapper">
@@ -263,20 +237,12 @@ function MainPage() {
                         addRegisteringTask(srcfile.label);
                       }
                     } disabled={
-                      {
-                        0: true,
-                        1: false,
-                        99: true
-                      }[srcfile.status]
+                      (FileActionButton[srcfile.status]).wait ?? false
                     }>
                       <span className="mdc-button__ripple"></span>
                       <span className="mdc-button__label"><b>
                       {
-                        {
-                          0: 'お待ちください',
-                          1: 'タスク登録',
-                          99: 'お待ちください'
-                        }[srcfile.status]
+                        (FileActionButton[srcfile.status]).label ?? '不明な状態'
                       }
                       </b></span>
                       <span className="mdc-button__touch"></span>
@@ -296,60 +262,32 @@ function MainPage() {
                 <div style={{flexGrow: 1}}>
                   {task.srcFile}（UUID:{task.uuid}）
                 </div>
-                {
-                  task.status === 0 || task.status === 2 || task.status === 4 || task.status === 99 ? 
-                    <div style={{marginRight: 10}}><MDSpinner /></div> : <></>
-                }
+                {(TaskActionButton[task.status]).wait ?? false ? <div style={{marginRight: 10}}><MDSpinner /></div> : <></>}
                 <div style={{marginRight: 10}}>
-                  {
-                    {
-                      0: '登録中...',
-                      1: 'メタ情報抽出待機中',
-                      2: 'メタ情報抽出中',
-                      3: '解析待機中',
-                      4: '解析中',
-                      5: '解析完了',
-                      99: '---'
-                    }[task.status]
-                  }
+                  {TaskStatusLabel[task.status]}
                 </div>
                 <div>
                   <div className="mdc-touch-target-wrapper">
-                    <button disabled={
-                      {
-                        0: true,
-                        1: false,
-                        2: true,
-                        3: false,
-                        4: true,
-                        5: false,
-                        99: true,
-                      }[task.status]
-                    } className="mdc-button mdc-button--touch mdc-button--raised" onClick={
-                      {
-                        0: () => {},
-                        1: () => {addMetaExtractingTask(task);}, //メタ情報抽出
-                        2: () => {},
-                        3: () => {openRunTaskDialog(task.uuid);}, //解析
-                        4: () => {},
-                        5: () => {dlResFile(task)}, //結果DL
-                        99: () => {},
-                      }[task.status]
-                    }>
-                      <span className="mdc-button__ripple"></span>
-                      <span className="mdc-button__label"><b>
-                      {
+                    <button
+                      disabled={(TaskActionButton[task.status]).wait ?? false}
+                      className="mdc-button mdc-button--touch mdc-button--raised"
+                      onClick={
                         {
-                          0: 'お待ちください',
-                          1: 'メタ情報抽出開始',
-                          2: 'お待ちください',
-                          3: '解析開始',
-                          4: 'お待ちください',
-                          5: '解析結果DL',
-                          99: 'お待ちください'
+                          0: () => {},
+                          1: () => {addMetaExtractingTask(task);}, //メタ情報抽出
+                          2: () => {},
+                          3: () => {openRunTaskDialog(task.uuid);}, //解析
+                          4: () => {},
+                          5: () => {dlResFile(task)}, //結果DL
+                          99: () => {},
                         }[task.status]
-                      }
-                      </b></span>
+                      }>
+                      <span className="mdc-button__ripple"></span>
+                      <span className="mdc-button__label">
+                        <b>
+                        {(TaskActionButton[task.status]).label ?? '不明な状態'}
+                        </b>
+                      </span>
                       <span className="mdc-button__touch"></span>
                     </button>
                   </div>
@@ -495,7 +433,7 @@ async function listSrcFiles() {
 }
 
 async function listTasks() {
-  const facadeRes = await facade.get('/tasklist');
+  const facadeRes = await FacadeClient.listAllTask();
   if (facadeRes.data) {
     if (facadeRes.data.success ?? false) {
       return facadeRes.data.items ?? [];

@@ -39,6 +39,12 @@
   }
 }
 
+.dand {
+  background-color: #eeeeee;
+  padding: 30px 10px 30px 10px;
+  border: 3px dotted #555555;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .App-logo {
     animation: App-logo-spin infinite 20s linear;
