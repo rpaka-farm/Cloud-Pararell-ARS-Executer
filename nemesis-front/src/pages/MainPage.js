@@ -34,28 +34,38 @@ function MainPage() {
   }
 
   const updateSrcFiles = async function() {
-    const items = await listSrcFiles();
-    setSrcfiles(
-      items.map((item) => {
-        return {
-          label: item.Key,
-          status: FileStatus.READY
-        }
-      })
-    );
+    const res = await listSrcFiles();
+    if (res.success) {
+      setSrcfiles(
+        res.files.map((item) => {
+          return {
+            label: item.Key,
+            status: FileStatus.READY
+          }
+        })
+      );
+    } else {
+      setSrcfiles([]);
+      showSnackBar("ファイル一覧の取得に失敗しました");
+    }
   }
 
   const updateTask = async function() {
     const ctasks = await listTasks();
-    setTasks(
-      ctasks.map((task) => {
-        return {
-          uuid: task.id,
-          srcFile: task.srcFile ?? 'ファイル名無し',
-          status: task.status
-        }
-      })
-    );
+    if (ctasks.success) {
+      setTasks(
+        ctasks.items.map((task) => {
+          return {
+            uuid: task.id,
+            srcFile: task.srcFile ?? 'ファイル名無し',
+            status: task.status
+          }
+        })
+      );
+    } else {
+      setTasks([]);
+      showSnackBar("タスク一覧の取得に失敗しました");
+    }
   }
 
   const addUploadingSrcFile = function(fileName) {
@@ -126,7 +136,15 @@ function MainPage() {
   // };
 
   useEffect(() => {
-    const fn = async () => {
+    const run = async () => {
+      const snackbar_i = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
+      setSnackBar(snackbar_i);
+    };
+    run();
+  }, []);
+
+  useEffect(() => {
+    const run = async () => {
       updateSrcFiles();
       await updateTask();
       let ts = [];
@@ -134,11 +152,11 @@ function MainPage() {
       setdialogtfs(ts);
       const dialog_i = new MDCDialog(document.querySelector('.mdc-dialog'));
       setdialog(dialog_i);
-      const snackbar_i = new MDCSnackbar(document.querySelector('.mdc-snackbar'));
-      setSnackBar(snackbar_i);
     };
-    fn();
-  }, []);
+    if (snackBar) {
+      run();
+    }
+  }, [snackBar]);
 
   useEffect(() => {
     if (dialog) {
@@ -355,7 +373,10 @@ function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
   });
 
   if (!files.length) {
-    return alert("Please choose a file to upload first.");
+    finishCb({
+      success: false,
+      reason: "ファイルを選んでください"
+    });
   }
   var file = files[0];
   var fileName = file.name;
@@ -371,10 +392,15 @@ function uploadToCloud(files, startCb = () => {}, finishCb = () => {}) {
   startCb();
   upload.promise().then(
     function(data) {
-      finishCb();
+      finishCb({
+        success: true
+      });
     },
     function(err) {
-      return alert("There was an error uploading your photo: ", err.message);
+      finishCb({
+        success: false,
+        reason: `S3へのアップロードに失敗しました: ${err.message}`
+      });
     }
   );
 }
@@ -384,30 +410,37 @@ async function listSrcFiles() {
   var bucketRegion = "us-east-1";
   var IdentityPoolId = "us-east-1:e303e91d-b49d-4fbb-99b0-7b37453e0516";
 
-  AWS.config.update({
-    region: bucketRegion,
-    credentials: new AWS.CognitoIdentityCredentials({
+  try {
+    const c = new AWS.CognitoIdentityCredentials({
       IdentityPoolId: IdentityPoolId
-    })
-  });
+    });
 
-  var s3 = new AWS.S3({
-    apiVersion: "2006-03-01",
-    params: { Bucket: bucketName }
-  });
-
-  const res = await s3.listObjects({ Delimiter: "/" }).promise();
-  return res.Contents;
+    AWS.config.update({
+      region: bucketRegion,
+      credentials: c
+    });
+  
+    var s3 = new AWS.S3({
+      apiVersion: "2006-03-01",
+      params: { Bucket: bucketName }
+    });
+  
+    const res = await s3.listObjects({ Delimiter: "/" }).promise();
+    return {
+      success: true,
+      files: res.Contents
+    };
+  } catch (e) {
+    return {
+      success: false
+    }
+  }
 }
 
 async function listTasks() {
   const facadeRes = await FacadeClient.listAllTask();
   if (facadeRes.data) {
-    if (facadeRes.data.success ?? false) {
-      return facadeRes.data.items ?? [];
-    } else {
-      return [];
-    }
+    return facadeRes.data;
   }
 }
 
