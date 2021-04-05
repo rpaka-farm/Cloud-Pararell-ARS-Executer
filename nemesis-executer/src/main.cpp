@@ -14,6 +14,7 @@
 #include "GL900CSVAdapter.hpp"
 #include "ARS.hpp"
 #include "STARS.hpp"
+#include "StatusDefinition.hpp"
 
 using json = nlohmann::json;
 namespace fs = std::filesystem;
@@ -143,7 +144,7 @@ int main()
         const Aws::String metas(meta.dump());
         attributeUpdatedValue.SetS(metas);
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(3);
+        attributeUpdatedValueB.SetN(TaskStatus::READY_FOR_EXECUTE);
         Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         expressionAttributeValues[":valueA"] = attributeUpdatedValue;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
@@ -273,7 +274,7 @@ int main()
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
         attributeUpdatedValue.SetS(Aws::String(resfile));
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(5);
+        attributeUpdatedValueB.SetN(TaskStatus::DONE_EXECUTE);
         Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         expressionAttributeValues[":valueA"] = attributeUpdatedValue;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
