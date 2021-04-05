@@ -18,7 +18,7 @@ set(BUILD_SHARED_LIBS ON CACHE STRING "Link to shared libraries by default.")
 find_package(AWSSDK REQUIRED COMPONENTS s3 dynamodb)
 find_package(httplib)
 find_package(nlohmann_json)
-add_executable(${PROJECT_NAME} src/main.cpp src/GL900CSVAdapter.cpp src/STARS.cpp src/ARS.cpp) #Add app's main starting file.
+add_executable(${PROJECT_NAME} src/test.cpp src/GL900CSVAdapter.cpp src/STARS.cpp src/ARS.cpp src/NKF.cpp) #Add app's main starting file.
 
 #Windows: This 'if' clause copies the SDK libraries from the installation location to the place where 
 #  this project's executable is located.  Without this you'll need to copy the install 
@@ -41,7 +41,7 @@ if(MSVC AND BUILD_SHARED_LIBS)
     message(STATUS ">>EXECUTABLE_OUTPUT_PATH : ${EXECUTABLE_OUTPUT_PATH}")
 endif()
 
-set_compiler_flags(${PROJECT_NAME} -fexceptions)
+# set_compiler_flags(${PROJECT_NAME} -fexceptions)
 set_compiler_warnings(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${AWSSDK_LINK_LIBRARIES})
 target_link_libraries(${PROJECT_NAME} httplib::httplib)

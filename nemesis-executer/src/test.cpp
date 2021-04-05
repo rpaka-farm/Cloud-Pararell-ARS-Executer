@@ -5,11 +5,18 @@
 #include <sys/stat.h>
 #include "GL900CSVAdapter.hpp"
 #include "STARS.hpp"
+#include "NKF.hpp"
 
 namespace fs = std::filesystem;
 
 int main()
 {
+  std::string encode = "";
+
+  int res = encodeFileToUtf8("210210-190757_UG_8.CSV");
+  std::cout << res << std::endl;
+
+  return 0;
 
   // std::setlocale(LC_CTYPE, "ja_JP.UTF-8");
 

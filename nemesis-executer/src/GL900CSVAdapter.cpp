@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <iostream>
 #include "GL900CSVAdapter.hpp"
+#include "NKF.hpp"
 
 GL900CSVAdapter::GL900CSVAdapter(fs::path csvFilePath)
 {
@@ -59,6 +60,12 @@ int GL900CSVAdapter::countSampleNum()
 
 metadata GL900CSVAdapter::extractMetaData()
 {
+  int res = encodeFileToUtf8(this->csvFilePath.filename());
+  if (res != 0)
+  {
+    throw "ENCODE_FAILED";
+  }
+
   metadata md = metadata();
 
   std::ifstream ifs = this->getStream();
@@ -116,6 +123,12 @@ metadata GL900CSVAdapter::extractMetaData()
 
 void GL900CSVAdapter::outputToUnifiedFormatFile(fs::path outputFilePath)
 {
+  int res = encodeFileToUtf8(this->csvFilePath.filename());
+  if (res != 0)
+  {
+    throw "ENCODE_FAILED";
+  }
+
   std::ifstream ifs = this->getStream();
   std::ofstream ofs = std::ofstream();
   ofs.open(outputFilePath);
