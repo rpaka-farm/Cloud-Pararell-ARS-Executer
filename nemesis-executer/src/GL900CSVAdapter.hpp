@@ -24,6 +24,7 @@ private:
   int META_MEASURE_INTERVAL_ROW = 4;
   int META_MEASURE_NUM_ROW = 5;
   int DATA_START_ROW = 28;
+  int DATA_FINISH_ROW = -1;
   int DT_DATE_COL = 2;
   int DT_TIME_COL = 3;
   int DT_TIMEMS_COL = 4;
@@ -35,12 +36,16 @@ private:
   // int DATA_CH6_COL = 10;
   // int DATA_CH7_COL = 11;
   // int DATA_CH8_COL = 12;
+  int META_MEASURE_NUM_COL = 2;
+  int META_MEASURE_INTERVAL_COL = 2;
 
   fs::path csvFilePath;
 
   std::ifstream getStream();
   void seekToFinalRow(std::ifstream &ifs);
   void seekToSpecificRow(std::ifstream &ifs, int row);
+  std::string getSpecificColItemOfRow(std::ifstream &ifs, int col);
+  void extractTime(std::ifstream &ifs, int row, std::chrono::system_clock::time_point &tp_t, int &tp_ms);
 
 public:
   GL900CSVAdapter(fs::path csvFilePath);
