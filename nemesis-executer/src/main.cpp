@@ -21,6 +21,9 @@ namespace fs = std::filesystem;
 
 int status;
 Aws::SDKOptions aws_options;
+void sig_handler(int signo);
+void set_sig_handlers();
+void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws::String, Aws::String> expressionAttributeNames, Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues);
 bool downloadSrcFile(std::string src_file_name);
 bool uploadResultFile(std::string res_file_name);
 
@@ -48,24 +51,8 @@ void sig_handler(int signo)
 
 int main()
 {
-  if (signal(SIGUSR1, sig_handler) == SIG_ERR)
-  {
-    printf("can't catch SIGUSR1\n");
-  }
-  if (signal(SIGTERM, sig_handler) == SIG_ERR)
-  {
-    printf("can't catch SIGUSR1\n");
-  }
-  if (signal(SIGKILL, sig_handler) == SIG_ERR)
-  {
-    printf("can't catch SIGKILL\n");
-  }
-  if (signal(SIGSTOP, sig_handler) == SIG_ERR)
-  {
-    printf("can't catch SIGSTOP\n");
-  }
-
   Aws::InitAPI(aws_options);
+  set_sig_handlers();
 
   httplib::Server svr;
   status = 0;
@@ -79,7 +66,6 @@ int main()
     res.set_header("Access-Control-Allow-Origin", "*");
     char str_buf[10];
     std::sprintf(str_buf, "%d", status);
-    // res.set_content("Hello World! status", "text/plain");
     res.set_content(str_buf, "text/plain");
   });
 
@@ -95,7 +81,6 @@ int main()
     {
       rescontent["success"] = true;
       res.set_content(rescontent.dump(), "application/json");
-
       status = 1;
       std::string body;
       content_reader([&](const char *data, size_t data_length) {
@@ -106,61 +91,72 @@ int main()
       std::string uuid = request_data["uuid"];
       std::string srcfile = request_data["srcfile"];
 
-      json meta;
-
-      std::cout << "Start DL..." << std::endl;
-      if (downloadSrcFile(srcfile))
+      try
       {
+        json meta;
+        std::cout << "Start DL..." << std::endl;
+        if (!downloadSrcFile(srcfile))
+        {
+          throw std::string("FAILED_DOWNLOAD_SRC_FILE");
+        }
+
         GL900CSVAdapter ad = GL900CSVAdapter(srcfile);
         metadata md = ad.extractMetaData();
-        meta["measureInterval"] = std::to_string(md.measureInterval.count());
         auto ts = std::chrono::system_clock::to_time_t(md.start);
-        meta["start"] = std::ctime(&ts);
         auto tf = std::chrono::system_clock::to_time_t(md.finish);
+        meta["measureInterval"] = std::to_string(md.measureInterval.count());
+        meta["start"] = std::ctime(&ts);
         meta["finish"] = std::ctime(&tf);
 
-        // DDBに書き込む
-        Aws::Client::ClientConfiguration clientConfig;
-        Aws::DynamoDB::DynamoDBClient dynamoClient(clientConfig);
-        Aws::DynamoDB::Model::UpdateItemRequest request;
-        const Aws::String tableName = "nemesis-task";
-        request.SetTableName(tableName);
-        Aws::DynamoDB::Model::AttributeValue attribValue;
-        const Aws::String keyValue(uuid);
-        attribValue.SetS(keyValue);
-        request.AddKey("id", attribValue);
-
-        // Construct the SET update expression argument
         Aws::String update_expression("SET #a = :valueA, #b = :valueB");
-        request.SetUpdateExpression(update_expression);
-
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+        Aws::String metas(meta.dump());
         expressionAttributeNames["#a"] = "meta";
         expressionAttributeNames["#b"] = "status";
-        request.SetExpressionAttributeNames(expressionAttributeNames);
-
-        // Construct attribute value argument
-        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
-        const Aws::String metas(meta.dump());
-        attributeUpdatedValue.SetS(metas);
-        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(TaskStatus::READY_FOR_EXECUTE);
-        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
-        expressionAttributeValues[":valueA"] = attributeUpdatedValue;
+        attributeUpdatedValueA.SetS(metas);
+        attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_META_EXTRACT);
+        expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
-        request.SetExpressionAttributeValues(expressionAttributeValues);
-
-        // Update the item
-        const Aws::DynamoDB::Model::UpdateItemOutcome &result = dynamoClient.UpdateItem(request);
-        if (!result.IsSuccess())
-        {
-          std::cout << result.GetError().GetMessage() << std::endl;
-        }
-        std::cout << "Item was updated" << std::endl;
+        updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
 
         // ファイル削除
         fs::remove(srcfile);
       }
+      catch (std::string e)
+      {
+        Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+        Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+        Aws::String ecode(e);
+        expressionAttributeNames["#a"] = "ecode";
+        expressionAttributeNames["#b"] = "status";
+        attributeUpdatedValueA.SetS(ecode);
+        attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_META_EXTRACT);
+        expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
+        expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+        updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+      }
+      catch (...)
+      {
+        Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+        Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+        Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+        Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+        expressionAttributeNames["#a"] = "ecode";
+        expressionAttributeNames["#b"] = "status";
+        attributeUpdatedValueA.SetS("UNKOWN_ERROR");
+        attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_EXECUTE);
+        expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
+        expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+        updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+      }
+
       status = 0;
     }
   });
@@ -274,7 +270,7 @@ int main()
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValue;
         attributeUpdatedValue.SetS(Aws::String(resfile));
         Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-        attributeUpdatedValueB.SetN(TaskStatus::DONE_EXECUTE);
+        attributeUpdatedValueB.SetN((int)TaskStatus::DONE_EXECUTE);
         Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
         expressionAttributeValues[":valueA"] = attributeUpdatedValue;
         expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
@@ -308,6 +304,48 @@ int main()
   });
 
   svr.listen("0.0.0.0", 8080);
+}
+
+void set_sig_handlers()
+{
+  if (signal(SIGUSR1, sig_handler) == SIG_ERR)
+  {
+    printf("can't catch SIGUSR1\n");
+  }
+  if (signal(SIGTERM, sig_handler) == SIG_ERR)
+  {
+    printf("can't catch SIGUSR1\n");
+  }
+  if (signal(SIGKILL, sig_handler) == SIG_ERR)
+  {
+    printf("can't catch SIGKILL\n");
+  }
+  if (signal(SIGSTOP, sig_handler) == SIG_ERR)
+  {
+    printf("can't catch SIGSTOP\n");
+  }
+}
+
+void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws::String, Aws::String> expressionAttributeNames, Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues)
+{
+  Aws::Client::ClientConfiguration clientConfig;
+  Aws::DynamoDB::DynamoDBClient dynamoClient(clientConfig);
+  Aws::DynamoDB::Model::UpdateItemRequest request;
+  Aws::DynamoDB::Model::AttributeValue attribValue;
+  const Aws::String tableName = "nemesis-task";
+  const Aws::String keyValue(uuid);
+  request.SetTableName(tableName);
+  attribValue.SetS(keyValue);
+  request.AddKey("id", attribValue);
+  request.SetUpdateExpression(update_expression);
+  request.SetExpressionAttributeNames(expressionAttributeNames);
+  request.SetExpressionAttributeValues(expressionAttributeValues);
+  const Aws::DynamoDB::Model::UpdateItemOutcome &result = dynamoClient.UpdateItem(request);
+  if (!result.IsSuccess())
+  {
+    // throw std::string("FAILED_UPDATE_DDB");
+    std::cout << result.GetError().GetMessage() << std::endl;
+  }
 }
 
 bool downloadSrcFile(std::string src_file_name)
