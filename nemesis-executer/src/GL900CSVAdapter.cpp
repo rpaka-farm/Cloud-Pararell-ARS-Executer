@@ -179,27 +179,34 @@ void GL900CSVAdapter::outputToUnifiedFormatFile(fs::path outputFilePath)
   std::ofstream ofs = std::ofstream();
   ofs.open(outputFilePath);
 
-  this->seekToSpecificRow(ifs, this->DATA_START_ROW);
-
-  for (std::string str_buf; getline(ifs, str_buf);)
+  try
   {
-    std::istringstream row(str_buf);
-    int col = 1;
-    std::string orow = "";
-    for (std::string col_str_buf; getline(row, col_str_buf, ','); col++)
+    this->seekToSpecificRow(ifs, this->DATA_START_ROW);
+    for (std::string str_buf; getline(ifs, str_buf);)
     {
-      if (col == DT_DATE_COL || col == DT_TIME_COL || col == DT_TIMEMS_COL || col == DATA_CH1_COL || col == DATA_CH2_COL || col == DATA_CH3_COL)
+      std::istringstream row(str_buf);
+      int col = 1;
+      std::string orow = "";
+      for (std::string col_str_buf; getline(row, col_str_buf, ','); col++)
       {
-        orow = orow + col_str_buf + ",";
+        if (col == DT_DATE_COL || col == DT_TIME_COL || col == DT_TIMEMS_COL || col == DATA_CH1_COL || col == DATA_CH2_COL || col == DATA_CH3_COL)
+        {
+          orow = orow + col_str_buf + ",";
+        }
+        else if (col == DATA_CH4_COL)
+        {
+          orow = orow + col_str_buf;
+        }
       }
-      else if (col == DATA_CH4_COL)
-      {
-        orow = orow + col_str_buf;
-      }
+      ofs << orow << std::endl;
     }
-    ofs << orow << std::endl;
   }
-
+  catch (std::string e)
+  {
+    ofs.close();
+    ifs.close();
+    throw std::string("INVALID_FILE");
+  }
   ofs.close();
   ifs.close();
 }
