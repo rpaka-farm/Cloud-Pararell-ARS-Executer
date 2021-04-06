@@ -1,14 +1,14 @@
 #ifndef STATUSDEF_H
 #define STATUSDEF_H
 
-enum FileStatus
+enum class FileStatus
 {
   UPLOADING = 0,
   READY = 1,
   INIT = 99
 };
 
-enum TaskStatus
+enum class TaskStatus
 {
   REGISTERING = 0,
   READY_FOR_META_EXTRACT = 1,
@@ -18,6 +18,6 @@ enum TaskStatus
   DONE_EXECUTE = 5,
   DL_RESULT = 6,
   INIT = 99
-}
+};
 
 #endif
