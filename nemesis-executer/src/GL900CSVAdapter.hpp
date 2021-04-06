@@ -44,7 +44,6 @@ private:
 
 public:
   GL900CSVAdapter(fs::path csvFilePath);
-  int countSampleNum();
   metadata extractMetaData();
   void outputToUnifiedFormatFile(fs::path outputFilePath);
 };

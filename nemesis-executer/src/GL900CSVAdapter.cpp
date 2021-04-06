@@ -49,15 +49,6 @@ void GL900CSVAdapter::seekToSpecificRow(std::ifstream &ifs, int row)
   }
 }
 
-int GL900CSVAdapter::countSampleNum()
-{
-  std::ifstream ifs = this->getStream();
-  std::string str_buf;
-  getline(ifs, str_buf, ',');
-  ifs.close();
-  return stoi(str_buf);
-}
-
 metadata GL900CSVAdapter::extractMetaData()
 {
   int res = encodeFileToUtf8(this->csvFilePath.filename());
