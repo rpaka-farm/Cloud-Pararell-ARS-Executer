@@ -17,6 +17,8 @@
 #include <cpprest/asyncrt_utils.h>
 #include <nlohmann/json.hpp>
 #include "GL900CSVAdapter.hpp"
+#include "USignalDataCSVAdapter.hpp"
+#include "USTARSSpectrumCSVAdapter.hpp"
 #include "ARS.hpp"
 #include "STARS.hpp"
 #include "StatusDefinition.hpp"
@@ -30,6 +32,7 @@ namespace fs = std::filesystem;
 int status;
 Aws::SDKOptions aws_options;
 void extractMetaData(nlohmann::json req_json);
+void executeAnalysis(nlohmann::json req_json);
 void sig_handler(int signo);
 void set_sig_handlers();
 void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws::String, Aws::String> expressionAttributeNames, Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues);
@@ -103,11 +106,18 @@ void CommandHandler::handle_get_or_post(http_request message)
     extractMetaData(reqcontent);
     status = 0;
   }
+  if (method == "POST" && uri == "/exec")
+  {
+    status = 2;
+    rescontent["success"] = true;
+    message.reply(status_codes::OK, rescontent.dump(), "application/json");
+    executeAnalysis(reqcontent);
+    status = 0;
+  }
 };
 
 void extractMetaData(nlohmann::json request_data)
 {
-  status = 1;
   std::string uuid = request_data["uuid"];
   std::string srcfile = request_data["srcfile"];
 
@@ -176,13 +186,85 @@ void extractMetaData(nlohmann::json request_data)
     expressionAttributeNames["#a"] = "ecode";
     expressionAttributeNames["#b"] = "status";
     attributeUpdatedValueA.SetS("UNKOWN_ERROR");
+    attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_META_EXTRACT);
+    expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
+    expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+    updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+  }
+}
+
+void executeAnalysis(nlohmann::json request_data)
+{
+  std::string uuid = request_data["uuid"];
+  std::string osrcfile = request_data["srcfile"];
+  std::string srcfile = osrcfile + "_U.csv";
+  std::string resfile = uuid + ".csv";
+  int window_size = request_data["window_size"];
+  int overlap = request_data["overlap"];
+  int min_port = request_data["min_port"];
+  int max_port = request_data["max_port"];
+  int start_window_num = request_data["start_window_num"];
+  int finish_window_num = request_data["finish_window_num"];
+  bool parallel = request_data["parallel"];
+
+  try
+  {
+    std::cout << "Start DL..." << std::endl;
+    if (!downloadSrcFile(srcfile))
+    {
+      fs::remove(srcfile);
+      throw std::string("FAILED_DOWNLOAD_SRC_FILE");
+    }
+
+    GL900CSVAdapter ad = GL900CSVAdapter(osrcfile);
+    USignalDataCSVAdapter srcad = USignalDataCSVAdapter(srcfile);
+    USTARSSpectrumCSVAdapter resad = USTARSSpectrumCSVAdapter();
+    stars_config saconf = {window_size, overlap, start_window_num, finish_window_num};
+    ars_config aconf = {min_port, max_port};
+    STARS sa = STARS(aconf, saconf);
+
+    ad.outputToUnifiedFormatFile(srcfile);
+    auto data = srcad.extractData(4);
+    auto stars_res = sa.exec(data);
+    auto out_res_file = resad.outputSTARSSpectrum(stars_res, fs::path("./" + uuid + ".csv"), saconf, parallel);
+    uploadResultFile(out_res_file);
+
+    // ファイル削除
+    fs::remove(osrcfile);
+    fs::remove(srcfile);
+    fs::remove(resfile);
+  }
+  catch (std::string e)
+  {
+    Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+    Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+    Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+    Aws::String ecode(e);
+    expressionAttributeNames["#a"] = "ecode";
+    expressionAttributeNames["#b"] = "status";
+    attributeUpdatedValueA.SetS(ecode);
     attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_EXECUTE);
     expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
     expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
     updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
   }
-
-  status = 0;
+  catch (...)
+  {
+    Aws::String update_expression("SET #a = :valueA, #b = :valueB");
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+    Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+    Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+    expressionAttributeNames["#a"] = "ecode";
+    expressionAttributeNames["#b"] = "status";
+    attributeUpdatedValueA.SetS("UNKOWN_ERROR");
+    attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_EXECUTE);
+    expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
+    expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+    updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+  }
 }
 
 int main()
