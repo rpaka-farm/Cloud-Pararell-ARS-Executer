@@ -58,7 +58,7 @@ std::string USTARSSpectrumCSVAdapter::outputSTARSSpectrum(std::vector<std::vecto
     ofs << std::endl;
   }
   ofs.close();
-  return outCsvFilePath;
+  return outCsvFilePath.filename();
 }
 
 void USTARSSpectrumCSVAdapter::integrateSTARSSpectrumCSVs(std::vector<fs::path> srcCsvFilePaths, fs::path outCsvFilePath)
