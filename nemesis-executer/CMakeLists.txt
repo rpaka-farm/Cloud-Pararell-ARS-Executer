@@ -36,7 +36,7 @@ if(MSVC AND BUILD_SHARED_LIBS)
 endif()
 
 # set_compiler_flags(${PROJECT_NAME} -fexceptions) # 例外を無効にする
-set_compiler_warnings(${PROJECT_NAME})
+# set_compiler_warnings(${PROJECT_NAME})
 
 # ライブラリをリンク
 target_link_libraries(${PROJECT_NAME} ${AWSSDK_LINK_LIBRARIES})
