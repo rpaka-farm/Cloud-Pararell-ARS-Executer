@@ -27,7 +27,10 @@ using namespace web;
 using namespace http;
 using namespace utility;
 using namespace http::experimental::listener;
+using namespace web::http::client;
 namespace fs = std::filesystem;
+
+std::string facadeHost = "http://localhost:3031";
 
 int status;
 Aws::SDKOptions aws_options;
@@ -37,7 +40,7 @@ void concatResFiles(nlohmann::json req_json);
 void sig_handler(int signo);
 void set_sig_handlers();
 void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws::String, Aws::String> expressionAttributeNames, Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues);
-bool downloadSrcFile(std::string src_file_name);
+bool downloadSrcFile(std::string src_file_name, bool res);
 bool uploadResultFile(std::string res_file_name);
 
 class CommandHandler
@@ -137,7 +140,7 @@ void extractMetaData(nlohmann::json request_data)
 
     nlohmann::json meta;
     std::cout << "Start DL..." << std::endl;
-    if (!downloadSrcFile(srcfile))
+    if (!downloadSrcFile(srcfile, false))
     {
       fs::remove(srcfile);
       throw std::string("FAILED_DOWNLOAD_SRC_FILE");
@@ -223,13 +226,14 @@ void executeAnalysis(nlohmann::json request_data)
     bool parallel = request_data["parallel"];
 
     std::cout << "Start DL..." << std::endl;
-    if (!downloadSrcFile(srcfile))
+    if (!downloadSrcFile(osrcfile, false))
     {
-      fs::remove(srcfile);
+      fs::remove(osrcfile);
       throw std::string("FAILED_DOWNLOAD_SRC_FILE");
     }
 
     GL900CSVAdapter ad = GL900CSVAdapter(osrcfile);
+
     USignalDataCSVAdapter srcad = USignalDataCSVAdapter(srcfile);
     USTARSSpectrumCSVAdapter resad = USTARSSpectrumCSVAdapter();
     stars_config saconf = {window_size, overlap, start_window_num, finish_window_num};
@@ -237,6 +241,7 @@ void executeAnalysis(nlohmann::json request_data)
     STARS sa = STARS(aconf, saconf);
 
     ad.outputToUnifiedFormatFile(srcfile);
+
     auto data = srcad.extractData(4);
     auto stars_res = sa.exec(data);
     auto out_res_file = resad.outputSTARSSpectrum(stars_res, fs::path("./" + uuid + ".csv"), saconf, parallel);
@@ -246,6 +251,43 @@ void executeAnalysis(nlohmann::json request_data)
     fs::remove(osrcfile);
     fs::remove(srcfile);
     fs::remove(resfile);
+
+    Aws::DynamoDB::Model::AttributeValue resFileAttr;
+    resFileAttr.SetS(Aws::String(resfile));
+    auto resFilePtr = std::make_shared<Aws::DynamoDB::Model::AttributeValue>(resFileAttr);
+    Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> newResFiles;
+    newResFiles.push_back(resFilePtr);
+
+    Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> emptyList;
+
+    Aws::String update_expression("SET #resfiles = list_append(if_not_exists(#resfiles, :empty_list), :new_resfiles)");
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+    Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+    Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+    expressionAttributeNames["#resfiles"] = "resfiles";
+    attributeUpdatedValueA.SetL(emptyList);
+    attributeUpdatedValueB.SetL(newResFiles);
+    expressionAttributeValues[":empty_list"] = attributeUpdatedValueA;
+    expressionAttributeValues[":new_resfiles"] = attributeUpdatedValueB;
+    updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+
+    status = 0;
+
+    pplx::create_task([uuid, parallel] {
+      http_client client(facadeHost + "/finish");
+      nlohmann::json reqcontent;
+      reqcontent["uuid"] = uuid;
+      reqcontent["parallel"] = parallel;
+      return client.request(methods::POST, "", reqcontent.dump(), "application/json");
+    }).then([](http_response response) {
+      std::cout << "Finish POST was sent" << std::endl;
+      if (response.status_code() == status_codes::OK)
+      {
+        std::cout << "Finish POST was OK" << std::endl;
+        // return response.extract_json();
+      }
+    });
   }
   catch (std::string e)
   {
@@ -286,11 +328,11 @@ void concatResFiles(nlohmann::json request_data)
   {
     std::string uuid = request_data["uuid"];
     std::vector<std::string> resfiles = request_data["resfiles"];
-    std::string outfile = "./" + uuid + ".csv";
+    std::string outfile = uuid + ".csv";
     for (auto resfile : resfiles)
     {
       std::cout << "Start DL..." << std::endl;
-      if (!downloadSrcFile(resfile))
+      if (!downloadSrcFile(resfile, true))
       {
         fs::remove(resfile);
         throw std::string("FAILED_DOWNLOAD_SRC_FILE");
@@ -302,8 +344,26 @@ void concatResFiles(nlohmann::json request_data)
     {
       resfilePaths.push_back(fs::path("./" + resfile));
     }
-    uasad.integrateSTARSSpectrumCSVs(resfilePaths, fs::path(outfile));
+    uasad.integrateSTARSSpectrumCSVs(resfilePaths, fs::path("./" + outfile));
     uploadResultFile(outfile);
+    fs::remove(outfile);
+
+    Aws::String update_expression("SET #a = :valueA, #b = :valueB, #c = :valueC");
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueC;
+    Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+    Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+    expressionAttributeNames["#a"] = "resFile";
+    expressionAttributeNames["#b"] = "status";
+    expressionAttributeNames["#c"] = "ecode";
+    attributeUpdatedValueA.SetS(Aws::String(outfile));
+    attributeUpdatedValueB.SetN((int)TaskStatus::DONE_CONCAT);
+    attributeUpdatedValueC.SetNull(true);
+    expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
+    expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
+    expressionAttributeValues[":valueC"] = attributeUpdatedValueC;
+    updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
   }
   catch (...)
   {
@@ -311,12 +371,24 @@ void concatResFiles(nlohmann::json request_data)
   }
 }
 
-int main()
+int main(int argc, char **argv)
 {
+  std::string port = "8080";
+  try
+  {
+    if (argc > 1)
+    {
+      port = argv[1];
+    }
+  }
+  catch (...)
+  {
+    // Pass
+  }
   try
   {
     Aws::InitAPI(aws_options);
-    utility::string_t address = U("http://localhost:8080");
+    utility::string_t address = U("http://localhost:" + port);
     uri_builder uri(address);
     auto addr = uri.to_uri().to_string();
     CommandHandler handler(addr);
@@ -402,13 +474,17 @@ void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws:
   }
 }
 
-bool downloadSrcFile(std::string src_file_name)
+bool downloadSrcFile(std::string src_file_name, bool res)
 {
   std::ofstream ofs = std::ofstream();
   ofs.open(fs::path(src_file_name));
 
   Aws::Client::ClientConfiguration config;
-  const Aws::String bucket_name = "stars-src";
+  Aws::String bucket_name = "stars-src";
+  if (res)
+  {
+    bucket_name = Aws::String("stars-res");
+  }
   const Aws::String object_name(src_file_name);
   const Aws::String region = "us-east-1";
   config.region = region;
