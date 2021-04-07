@@ -14,7 +14,7 @@ private:
 
 public:
   USTARSSpectrumCSVAdapter();
-  void outputSTARSSpectrum(std::vector<std::vector<float>>, fs::path outCsvFilePath, stars_config starsc, bool distribute = false);
+  std::string outputSTARSSpectrum(std::vector<std::vector<float>>, fs::path outCsvFilePath, stars_config starsc, bool distribute = false);
   void integrateSTARSSpectrumCSVs(std::vector<fs::path>, fs::path outCsvFilePath);
 };
 

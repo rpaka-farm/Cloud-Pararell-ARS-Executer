@@ -33,7 +33,7 @@ USTARSSpectrumCSVAdapter::USTARSSpectrumCSVAdapter()
 {
 }
 
-void USTARSSpectrumCSVAdapter::outputSTARSSpectrum(std::vector<std::vector<float>> res, fs::path outCsvFilePath, stars_config starsc, bool distribute)
+std::string USTARSSpectrumCSVAdapter::outputSTARSSpectrum(std::vector<std::vector<float>> res, fs::path outCsvFilePath, stars_config starsc, bool distribute)
 {
   if (distribute)
   {
@@ -58,6 +58,7 @@ void USTARSSpectrumCSVAdapter::outputSTARSSpectrum(std::vector<std::vector<float
     ofs << std::endl;
   }
   ofs.close();
+  return outCsvFilePath;
 }
 
 void USTARSSpectrumCSVAdapter::integrateSTARSSpectrumCSVs(std::vector<fs::path> srcCsvFilePaths, fs::path outCsvFilePath)
