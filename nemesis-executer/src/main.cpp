@@ -33,6 +33,7 @@ int status;
 Aws::SDKOptions aws_options;
 void extractMetaData(nlohmann::json req_json);
 void executeAnalysis(nlohmann::json req_json);
+void concatResFiles(nlohmann::json req_json);
 void sig_handler(int signo);
 void set_sig_handlers();
 void updateTaskDb(std::string uuid, Aws::String update_expression, Aws::Map<Aws::String, Aws::String> expressionAttributeNames, Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues);
@@ -114,6 +115,16 @@ void CommandHandler::handle_get_or_post(http_request message)
     executeAnalysis(reqcontent);
     status = 0;
   }
+  if (method == "POST" && uri == "/concat")
+  {
+    status = 3;
+    rescontent["success"] = true;
+    message.reply(status_codes::OK, rescontent.dump(), "application/json");
+    concatResFiles(reqcontent);
+    status = 0;
+  }
+  rescontent["success"] = false;
+  message.reply(status_codes::OK, rescontent.dump(), "application/json");
 };
 
 void extractMetaData(nlohmann::json request_data)
@@ -264,6 +275,37 @@ void executeAnalysis(nlohmann::json request_data)
     expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
     expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
     updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+  }
+}
+
+void concatResFiles(nlohmann::json request_data)
+{
+  try
+  {
+    std::string uuid = request_data["uuid"];
+    std::vector<std::string> resfiles = request_data["resfiles"];
+    std::string outfile = "./" + uuid + ".csv";
+    for (auto resfile : resfiles)
+    {
+      std::cout << "Start DL..." << std::endl;
+      if (!downloadSrcFile(resfile))
+      {
+        fs::remove(resfile);
+        throw std::string("FAILED_DOWNLOAD_SRC_FILE");
+      }
+    }
+    USTARSSpectrumCSVAdapter uasad;
+    std::vector<fs::path> resfilePaths;
+    for (auto resfile : resfiles)
+    {
+      resfilePaths.push_back(fs::path("./" + resfile));
+    }
+    uasad.integrateSTARSSpectrumCSVs(resfilePaths, fs::path(outfile));
+    uploadResultFile(outfile);
+  }
+  catch (...)
+  {
+    std::cout << "Exception" << std::endl;
   }
 }
 
