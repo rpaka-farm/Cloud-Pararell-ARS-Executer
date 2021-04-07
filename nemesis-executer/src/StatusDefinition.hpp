@@ -16,7 +16,9 @@ enum class TaskStatus
   READY_FOR_EXECUTE = 3,
   EXECUTING = 4,
   DONE_EXECUTE = 5,
-  DL_RESULT = 6,
+  CONCATING = 6,
+  DONE_CONCAT = 7,
+  DL_RESULT = 8,
   INIT = 99
 };
 
