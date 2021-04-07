@@ -129,11 +129,12 @@ void CommandHandler::handle_get_or_post(http_request message)
 
 void extractMetaData(nlohmann::json request_data)
 {
-  std::string uuid = request_data["uuid"];
-  std::string srcfile = request_data["srcfile"];
-
+  std::string uuid;
   try
   {
+    uuid = request_data["uuid"];
+    std::string srcfile = request_data["srcfile"];
+
     nlohmann::json meta;
     std::cout << "Start DL..." << std::endl;
     if (!downloadSrcFile(srcfile))
@@ -206,20 +207,21 @@ void extractMetaData(nlohmann::json request_data)
 
 void executeAnalysis(nlohmann::json request_data)
 {
-  std::string uuid = request_data["uuid"];
-  std::string osrcfile = request_data["srcfile"];
-  std::string srcfile = osrcfile + "_U.csv";
-  std::string resfile = uuid + ".csv";
-  int window_size = request_data["window_size"];
-  int overlap = request_data["overlap"];
-  int min_port = request_data["min_port"];
-  int max_port = request_data["max_port"];
-  int start_window_num = request_data["start_window_num"];
-  int finish_window_num = request_data["finish_window_num"];
-  bool parallel = request_data["parallel"];
-
+  std::string uuid;
   try
   {
+    uuid = request_data["uuid"];
+    std::string osrcfile = request_data["srcfile"];
+    std::string srcfile = osrcfile + "_U.csv";
+    std::string resfile = uuid + ".csv";
+    int window_size = request_data["window_size"];
+    int overlap = request_data["overlap"];
+    int min_port = request_data["min_port"];
+    int max_port = request_data["max_port"];
+    int start_window_num = request_data["start_window_num"];
+    int finish_window_num = request_data["finish_window_num"];
+    bool parallel = request_data["parallel"];
+
     std::cout << "Start DL..." << std::endl;
     if (!downloadSrcFile(srcfile))
     {
