@@ -130,6 +130,7 @@ async function main(event, context) {
       const overlap = body.overlap;
       const min_port = body.min_port;
       const max_port = body.max_port;
+      const parallel_num = body.parallel_num;
 
       // 状況を確認
       const status = await takeContainerStatus();
@@ -140,50 +141,70 @@ async function main(event, context) {
         });
       }
 
-      // メタデータの抽出を依頼
+      // 解析を依頼
       const containers = await findContainerDomain();
-      if (containers.count != 1) {
-        await changeContainerNums(1);
+      if (containers.count != parallel_num) {
+        await changeContainerNums(parallel_num);
         return makeResponse({
           success: false,
           reasonCode: "CHANGE_CONTAINER_NUMS",
           reason: "コンテナの数を調整中です。しばらく待ってから再度お試し下さい。"
         });
-      } else {
-        //タスクの状態を更新
-        await ddb.update({
-          TableName: 'nemesis-task',
-          Key: {
-            id: uid
-          },
-          UpdateExpression: 'set #a = :av',
-          ExpressionAttributeNames: {'#a' : 'status'},
-          ExpressionAttributeValues: {
-            ':av' : 4
-          }
-        }).promise();
+      }
 
-        const ddbres = await ddb.get({
-          TableName : 'nemesis-task',
-          Key: {
-            id: uid
-          }
-        }).promise();
+      //タスクの状態を更新
+      await ddb.update({
+        TableName: 'nemesis-task',
+        Key: {
+          id: uid
+        },
+        UpdateExpression: 'set #a = :av',
+        ExpressionAttributeNames: {'#a' : 'status'},
+        ExpressionAttributeValues: {
+          ':av' : 4
+        }
+      }).promise();
 
-        const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : containers.infos[0].host;
+      const ddbres = await ddb.get({
+        TableName : 'nemesis-task',
+        Key: {
+          id: uid
+        }
+      }).promise();
+      const metaData = JSON.parse(ddbres.Item.meta);
+
+      // 各コンテナの担当範囲を決定
+      const window_num = ((metaData.sampleNum - window_size) / (window_size - overlap)) + 1;
+      const window_nums = [];
+      const window_unit_num = Math.floor(window_num / parallel_num);
+      let start = 1;
+      let finish = window_unit_num;
+      for (let i = 0; i < parallel_num; i++) {
+        window_nums.push({
+          "start_window_num": start,
+          "finish_window_num": (i != parallel_num - 1) ? finish : -1
+        });
+        start += window_unit_num;
+        finish += window_unit_num;
+      }
+
+      for (let i = 0; i < parallel_num; i++) {
+        const host = containers.infos[i].host;
         axios.post(`http://${host}/exec`, {
           "srcfile": ddbres.Item.srcFile,
           "uuid": uid,
           "window_size": window_size,
           "overlap": overlap,
           "min_port": min_port,
-          "max_port": max_port
-        });
-
-        return makeResponse({
-          success: true
+          "max_port": max_port,
+          "start_window_num": window_nums[i].start_window_num,
+          "finish_window_num": window_nums[i].finish_window_num
         });
       }
+
+      return makeResponse({
+        success: true
+      });
     } else if (path == '/finish' && httpMethod == 'POST') {
       const uid = body.uuid;
       const parallel = body.parallel;
