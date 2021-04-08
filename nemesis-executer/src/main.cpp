@@ -150,6 +150,7 @@ void extractMetaData(nlohmann::json request_data)
     metadata md = ad.extractMetaData();
     auto ts = std::chrono::system_clock::to_time_t(md.start);
     auto tf = std::chrono::system_clock::to_time_t(md.finish);
+    meta["sampleNum"] = md.sampleNum;
     meta["measureInterval"] = std::to_string(md.measureInterval.count());
     meta["start"] = std::ctime(&ts);
     meta["finish"] = std::ctime(&tf);
