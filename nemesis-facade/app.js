@@ -5,8 +5,6 @@ const dotenv = require('dotenv');
 const debug = require('debug')('debug-name');
 dotenv.config();
 
-const DEV_EXEC_HOST = "312680a1aaa2.ngrok.io";
-
 /*
 { name: 'privateDnsName', value: 'ip-10-0-0-91.ec2.internal' }
 { name: 'privateDnsName', value: 'ip-10-0-1-121.ec2.internal' }
@@ -116,7 +114,7 @@ async function main(event, context) {
           }
         }).promise();
 
-        const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : containers.infos[0].host;
+        const host = containers.infos[0].host;
         axios.post(`http://${host}/extmeta`, {
           "srcfile": ddbres.Item.srcFile,
           "uuid": uid
@@ -186,8 +184,51 @@ async function main(event, context) {
           success: true
         });
       }
-    } else if (path == '/finish' && httpMethod == 'GET') {
-      await changeContainerNums(0);
+    } else if (path == '/finish' && httpMethod == 'POST') {
+      const uid = body.uuid;
+      const parallel = body.parallel;
+      const status = await takeContainerStatus();
+      if (parallel) {
+        if (status.allIdle) {
+          //タスクの状態を更新
+          await ddb.update({
+            TableName: 'nemesis-task',
+            Key: {
+              id: uid
+            },
+            UpdateExpression: 'set #a = :av',
+            ExpressionAttributeNames: {'#a' : 'status'},
+            ExpressionAttributeValues: {
+              ':av' : 6
+            }
+          }).promise();
+          const ddbres = await ddb.get({
+            TableName : 'nemesis-task',
+            Key: {
+              id: uid
+            }
+          }).promise();
+          const containers = await findContainerDomain();
+          const host = containers.infos[0].host;
+          axios.post(`http://${host}/concat`, {
+            "resfiles": ddbres.Item.resFiles,
+            "uuid": uid
+          });
+        }
+      } else {
+        //タスクの状態を更新
+        await ddb.update({
+          TableName: 'nemesis-task',
+          Key: {
+            id: uid
+          },
+          UpdateExpression: 'set #a = :av',
+          ExpressionAttributeNames: {'#a' : 'status'},
+          ExpressionAttributeValues: {
+            ':av' : 7
+          }
+        }).promise();
+      }
       return makeResponse({
         success: true
       });
@@ -227,13 +268,15 @@ async function takeContainerStatus() {
     allIdle: true
   };
   for (let i = 0; i < ecs.infos.length; i++) {
-    const host = process.env.ENV == 'dev' ? DEV_EXEC_HOST : ecs.infos[i].host;
-    console.log(`http://${host}/status`);
-    const res = await axios.get(`http://${host}/status`);
-    console.log(res.data);
-    status[host] = res.data;
-    if (res.data !== 0) {
-      status.allIdle = false;
+    const host = ecs.infos[i].host;
+    try {
+      const res = await axios.get(`http://${host}/status`);
+      status[host] = res.data.status;
+      if (res.data.status !== 0) {
+        status.allIdle = false;
+      }
+    } catch (e) {
+      status[host] = 9;
     }
   }
   return status;
@@ -241,6 +284,18 @@ async function takeContainerStatus() {
 
 // 解析用コンテナ（ECS Task）のVPS内プライベートドメインを見つける・個数を確認する
 async function findContainerDomain() {
+  if (process.env.ENV == 'dev') {
+    let count = 0;
+    const infos = process.env.LOCAL_EXECUTER_HOSTS.split(',').map((host) => {
+      count++;
+      return {
+        host: host,
+        status: 'RUNNING'
+      };
+    });
+    return {count, infos}
+  }
+
   const ecs = new AWS.ECS({region: 'us-east-1'});
   let count = 0;
   const infos = [];
@@ -281,6 +336,9 @@ async function findContainerDomain() {
 
 // 解析用コンテナの数を増減させる
 async function changeContainerNums(containerNum) {
+  if (process.env.ENV == 'dev') {
+    return true;
+  }
   const ecs = new AWS.ECS({region: 'us-east-1'});
   var params = {
     desiredCount: containerNum,

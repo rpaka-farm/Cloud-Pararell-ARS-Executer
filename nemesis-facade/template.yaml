@@ -51,7 +51,7 @@ Resources:
           Type: Api
           Properties:
             Path: /finish
-            Method: get
+            Method: post
 
 Outputs:
   NemesisFacadeApi:
