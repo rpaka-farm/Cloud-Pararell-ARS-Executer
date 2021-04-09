@@ -258,7 +258,7 @@ void executeAnalysis(nlohmann::json request_data)
     // ファイル削除
     fs::remove(osrcfile);
     fs::remove(srcfile);
-    fs::remove(resfile);
+    fs::remove(out_res_file);
 
     Aws::DynamoDB::Model::AttributeValue resFileAttr;
     resFileAttr.SetS(Aws::String(out_res_file));
@@ -355,6 +355,10 @@ void concatResFiles(nlohmann::json request_data)
     uasad.integrateSTARSSpectrumCSVs(resfilePaths, fs::path("./" + outfile));
     uploadResultFile(outfile);
     fs::remove(outfile);
+    for (auto resfile : resfiles)
+    {
+      fs::remove(resfile);
+    }
 
     Aws::String update_expression("SET #a = :valueA, #b = :valueB, #c = :valueC");
     Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
