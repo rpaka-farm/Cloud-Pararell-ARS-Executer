@@ -55,3 +55,8 @@ add_custom_target(
     COMMAND docker tag stars-cloud:latest 554358119287.dkr.ecr.us-east-1.amazonaws.com/stars-cloud:latest
     COMMAND docker push 554358119287.dkr.ecr.us-east-1.amazonaws.com/stars-cloud:latest
 )
+add_custom_target(
+    cplocal
+    COMMAND cp ./app ./exec1/app
+    COMMAND cp ./app ./exec2/app
+)
