@@ -164,6 +164,14 @@ async function main(event, context) {
           ':av' : 4
         }
       }).promise();
+      await ddb.update({
+        TableName: 'nemesis-task',
+        Key: {
+          id: uid
+        },
+        UpdateExpression: 'remove #a',
+        ExpressionAttributeNames: {'#a' : 'resfiles'},
+      }).promise();
 
       const ddbres = await ddb.get({
         TableName : 'nemesis-task',
@@ -190,7 +198,7 @@ async function main(event, context) {
 
       for (let i = 0; i < parallel_num; i++) {
         const host = containers.infos[i].host;
-        axios.post(`http://${host}/exec`, {
+        const option = {
           "srcfile": ddbres.Item.srcFile,
           "uuid": uid,
           "window_size": window_size,
@@ -198,8 +206,10 @@ async function main(event, context) {
           "min_port": min_port,
           "max_port": max_port,
           "start_window_num": window_nums[i].start_window_num,
-          "finish_window_num": window_nums[i].finish_window_num
-        });
+          "finish_window_num": window_nums[i].finish_window_num,
+          "parallel": parallel_num != 1
+        };
+        axios.post(`http://${host}/exec`, option);
       }
 
       return makeResponse({
@@ -231,10 +241,11 @@ async function main(event, context) {
           }).promise();
           const containers = await findContainerDomain();
           const host = containers.infos[0].host;
-          axios.post(`http://${host}/concat`, {
-            "resfiles": ddbres.Item.resFiles,
+          const option = {
+            "resfiles": ddbres.Item.resfiles,
             "uuid": uid
-          });
+          };
+          axios.post(`http://${host}/concat`, option);
         }
       } else {
         //タスクの状態を更新
