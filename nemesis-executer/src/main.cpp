@@ -166,7 +166,7 @@ void extractMetaData(nlohmann::json request_data)
     expressionAttributeNames["#b"] = "status";
     expressionAttributeNames["#c"] = "ecode";
     attributeUpdatedValueA.SetS(metas);
-    attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_META_EXTRACT);
+    attributeUpdatedValueB.SetN((int)TaskStatus::READY_FOR_EXECUTE);
     attributeUpdatedValueC.SetNull(true);
     expressionAttributeValues[":valueA"] = attributeUpdatedValueA;
     expressionAttributeValues[":valueB"] = attributeUpdatedValueB;
