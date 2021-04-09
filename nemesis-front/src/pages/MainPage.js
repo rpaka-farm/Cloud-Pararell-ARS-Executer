@@ -125,7 +125,7 @@ function MainPage() {
     const facadeRes = await FacadeClient.execute(option);
     if (facadeRes.success) {
       showSnackBar("解析を実行中です。この操作には時間がかかります。");
-      waitFotStatusChanged(listTasks, option.uuid, TaskStatus.DONE_EXECUTE, updateTask)
+      waitFotStatusChanged(listTasks, option.uuid, TaskStatus.DONE_CONCAT, updateTask)
     } else {
       showSnackBar(facadeRes.reason);
       updateTask();
@@ -192,7 +192,7 @@ function MainPage() {
         }
       });
     }
-  }, [dialog, dialogtfs, addEsecuteTask]);
+  }, [dialog]);
 
   return (
     <main className="mdc-top-app-bar--fixed-adjust">
@@ -267,7 +267,9 @@ function MainPage() {
                           2: () => {},
                           3: () => {openRunTaskDialog(task.uuid);}, //解析
                           4: () => {},
-                          5: () => {dlResFile(task)}, //結果DL
+                          5: () => {},
+                          6: () => {},
+                          7: () => {dlResFile(task)}, //結果DL
                           99: () => {},
                         }[task.status]
                       }>
