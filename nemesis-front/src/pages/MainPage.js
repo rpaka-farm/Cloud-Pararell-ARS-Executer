@@ -121,7 +121,9 @@ function MainPage() {
 
   // eslint-disable-next-line
   const addEsecuteTask = async function (option) {
-    updateLocalItemStatus(tasks, setTasks, option.uuid, TaskStatus.EXECUTING);
+    let tasks = await listTasks();
+    tasks.items = tasks.items.map((task) => {task.uuid = task.id; return task;});
+    updateLocalItemStatus(tasks.items, setTasks, option.uuid, TaskStatus.EXECUTING);
     const facadeRes = await FacadeClient.execute(option);
     if (facadeRes.success) {
       showSnackBar("解析を実行中です。この操作には時間がかかります。");
