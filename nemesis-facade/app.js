@@ -260,6 +260,7 @@ async function main(event, context) {
             ':av' : 7
           }
         }).promise();
+        await changeContainerNums(0);
       }
       return makeResponse({
         success: true
