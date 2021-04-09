@@ -120,6 +120,13 @@ void CommandHandler::handle_get_or_post(http_request message)
   }
   if (method == "POST" && uri == "/concat")
   {
+    if (status == 3)
+    {
+      std::cout << "Ignored Concat Task" << std::endl;
+      rescontent["success"] = true;
+      message.reply(status_codes::OK, rescontent.dump(), "application/json");
+      return;
+    }
     status = 3;
     rescontent["success"] = true;
     message.reply(status_codes::OK, rescontent.dump(), "application/json");
