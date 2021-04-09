@@ -260,25 +260,39 @@ void executeAnalysis(nlohmann::json request_data)
     fs::remove(srcfile);
     fs::remove(out_res_file);
 
-    Aws::DynamoDB::Model::AttributeValue resFileAttr;
-    resFileAttr.SetS(Aws::String(out_res_file));
-    auto resFilePtr = std::make_shared<Aws::DynamoDB::Model::AttributeValue>(resFileAttr);
-    Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> newResFiles;
-    newResFiles.push_back(resFilePtr);
+    if (parallel)
+    {
+      Aws::DynamoDB::Model::AttributeValue resFileAttr;
+      resFileAttr.SetS(Aws::String(out_res_file));
+      auto resFilePtr = std::make_shared<Aws::DynamoDB::Model::AttributeValue>(resFileAttr);
+      Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> newResFiles;
+      newResFiles.push_back(resFilePtr);
 
-    Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> emptyList;
+      Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> emptyList;
 
-    Aws::String update_expression("SET #resfiles = list_append(if_not_exists(#resfiles, :empty_list), :new_resfiles)");
-    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
-    Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
-    Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
-    Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
-    expressionAttributeNames["#resfiles"] = "resfiles";
-    attributeUpdatedValueA.SetL(emptyList);
-    attributeUpdatedValueB.SetL(newResFiles);
-    expressionAttributeValues[":empty_list"] = attributeUpdatedValueA;
-    expressionAttributeValues[":new_resfiles"] = attributeUpdatedValueB;
-    updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+      Aws::String update_expression("SET #resfiles = list_append(if_not_exists(#resfiles, :empty_list), :new_resfiles)");
+      Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+      Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueB;
+      Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+      Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+      expressionAttributeNames["#resfiles"] = "resfiles";
+      attributeUpdatedValueA.SetL(emptyList);
+      attributeUpdatedValueB.SetL(newResFiles);
+      expressionAttributeValues[":empty_list"] = attributeUpdatedValueA;
+      expressionAttributeValues[":new_resfiles"] = attributeUpdatedValueB;
+      updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+    }
+    else
+    {
+      Aws::String update_expression("SET #resfile = :new_resfile");
+      Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
+      Aws::Map<Aws::String, Aws::DynamoDB::Model::AttributeValue> expressionAttributeValues;
+      Aws::Map<Aws::String, Aws::String> expressionAttributeNames;
+      expressionAttributeNames["#resfile"] = "resFile";
+      attributeUpdatedValueA.SetS(Aws::String(out_res_file));
+      expressionAttributeValues[":new_resfile"] = attributeUpdatedValueA;
+      updateTaskDb(uuid, update_expression, expressionAttributeNames, expressionAttributeValues);
+    }
 
     status = 0;
 
