@@ -254,7 +254,7 @@ void executeAnalysis(nlohmann::json request_data)
     fs::remove(resfile);
 
     Aws::DynamoDB::Model::AttributeValue resFileAttr;
-    resFileAttr.SetS(Aws::String(resfile));
+    resFileAttr.SetS(Aws::String(out_res_file));
     auto resFilePtr = std::make_shared<Aws::DynamoDB::Model::AttributeValue>(resFileAttr);
     Aws::Vector<std::shared_ptr<Aws::DynamoDB::Model::AttributeValue>> newResFiles;
     newResFiles.push_back(resFilePtr);
