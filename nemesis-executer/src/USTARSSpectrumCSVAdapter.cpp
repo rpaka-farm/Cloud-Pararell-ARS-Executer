@@ -42,7 +42,7 @@ std::string USTARSSpectrumCSVAdapter::outputSTARSSpectrum(std::vector<std::vecto
   }
 
   std::ofstream ofs(outCsvFilePath);
-  int pos = 1;
+  int pos = (starsc.start_window_num - 1) * (starsc.window_size - starsc.overlap) + 1;
   for (auto ars_spcetl_set : res)
   {
     ofs << pos << ",";
