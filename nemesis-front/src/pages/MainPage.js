@@ -113,8 +113,8 @@ function MainPage() {
   }
 
   const openRunTaskDialog = function (uuid) {
-    if (dialogtfs.length === 5) {
-      dialogtfs[4].value = uuid;
+    if (dialogtfs.length === 6) {
+      dialogtfs[5].value = uuid;
     }
     dialog.open();
   };
@@ -184,9 +184,9 @@ function MainPage() {
             const what = [
               'window_size', 'overlap',
               'min_port', 'max_port',
-              'uuid'
+              'parallel_num', 'uuid'
             ];
-            option[what[i]] = (i !== 4) ? Number(t.value) : t.value;
+            option[what[i]] = (i !== 5) ? Number(t.value) : t.value;
           });
           addEsecuteTask(option);
         }
@@ -335,6 +335,16 @@ function MainPage() {
               </label>
               <div className="mdc-text-field-helper-line">
                 <div className="mdc-text-field-helper-text" aria-hidden="true">ARSを適用する最大の周期のサンプル数です</div>
+              </div>
+
+              <label className="mdc-text-field mdc-text-field--filled">
+                <span className="mdc-text-field__ripple"></span>
+                <span className="mdc-floating-label" id="starsconf::parallel_num">並列数</span>
+                <input className="mdc-text-field__input" type="number" />
+                <span className="mdc-line-ripple"></span>
+              </label>
+              <div className="mdc-text-field-helper-line">
+                <div className="mdc-text-field-helper-text" aria-hidden="true">STARSを並列解析するコンテナの数です</div>
               </div>
 
               <label className="mdc-text-field mdc-text-field--filled">
