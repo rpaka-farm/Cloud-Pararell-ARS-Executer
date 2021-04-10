@@ -50,6 +50,10 @@ add_custom_target(
     COMMAND docker build . -t stars-cloud:latest
 )
 add_custom_target(
+    ecrauth
+    COMMAND aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 554358119287.dkr.ecr.us-east-1.amazonaws.com
+)
+add_custom_target(
     pub-container
     COMMAND docker tag stars-cloud:latest 554358119287.dkr.ecr.us-east-1.amazonaws.com/stars-cloud:latest
     COMMAND docker push 554358119287.dkr.ecr.us-east-1.amazonaws.com/stars-cloud:latest
