@@ -1,5 +1,5 @@
 import '../App.scss';
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import AWS from 'aws-sdk';
 import {MDCDialog} from '@material/dialog';
 import {MDCTextField} from '@material/textfield';
@@ -26,14 +26,14 @@ function MainPage() {
   const [dialogtfs, setdialogtfs] = useState([]);
   const [snackBar, setSnackBar] = useState(undefined);
 
-  const showSnackBar = function(labelText) {
+  const showSnackBar = useCallback(function(labelText) {
     if (snackBar) {
       snackBar.labelText = labelText;
       snackBar.open();
     }
-  }
+  }, [snackBar]);
 
-  const updateSrcFiles = async function() {
+  const updateSrcFiles = useCallback(async function() {
     const res = await listSrcFiles();
     if (res.success) {
       setSrcfiles(
@@ -48,9 +48,9 @@ function MainPage() {
       setSrcfiles([]);
       showSnackBar("ファイル一覧の取得に失敗しました");
     }
-  }
+  }, [setSrcfiles, showSnackBar]);
 
-  const updateTask = async function() {
+  const updateTask = useCallback(async function() {
     const ctasks = await listTasks();
     if (ctasks.success) {
       setTasks(
@@ -66,7 +66,7 @@ function MainPage() {
       setTasks([]);
       showSnackBar("タスク一覧の取得に失敗しました");
     }
-  }
+  }, [setTasks, showSnackBar]);
 
   const addUploadingSrcFile = async function(file) {
     const fileName = file.name;
@@ -175,7 +175,7 @@ function MainPage() {
     if (snackBar) {
       run();
     }
-  }, [snackBar]);
+  }, [snackBar, updateSrcFiles, updateTask]);
 
   useEffect(() => {
     if (dialog) {
@@ -194,7 +194,7 @@ function MainPage() {
         }
       });
     }
-  }, [dialog]);
+  }, [dialog, addEsecuteTask, dialogtfs]);
 
   return (
     <main className="mdc-top-app-bar--fixed-adjust">
@@ -420,7 +420,7 @@ async function uploadToCloud(file) {
   });
 
   try {
-    const data = await upload.promise();
+    await upload.promise();
     return {
       success: true
     };
