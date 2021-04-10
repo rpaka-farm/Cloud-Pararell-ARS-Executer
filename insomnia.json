@@ -1,0 +1,369 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2021-04-10T14:19:20.171Z",
+  "__export_source": "insomnia.desktop.app:v2021.2.2",
+  "resources": [
+    {
+      "_id": "req_42a9e4af80a640f0be2cfb80ac437896",
+      "parentId": "fld_2eb98b586e1347ac872532fd0b119a35",
+      "modified": 1618063931592,
+      "created": 1616666629586,
+      "url": "http://localhost:8080/status",
+      "name": "ECS::状況確認",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1617263165227,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_2eb98b586e1347ac872532fd0b119a35",
+      "parentId": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "modified": 1618063923454,
+      "created": 1618063923454,
+      "name": "Executer",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1618063923454,
+      "_type": "request_group"
+    },
+    {
+      "_id": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "parentId": null,
+      "modified": 1618064240462,
+      "created": 1616666611269,
+      "name": "Nemesis",
+      "description": "",
+      "scope": "collection",
+      "_type": "workspace"
+    },
+    {
+      "_id": "req_02417993103f4fd5b9541198180e9b93",
+      "parentId": "fld_2eb98b586e1347ac872532fd0b119a35",
+      "modified": 1618063930077,
+      "created": 1616689012374,
+      "url": "http://localhost:8080/extmeta",
+      "name": "ECS::メタ抽出",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"srcfile\": \"210210-190757_UG_8.CSV\",\n\t\"uuid\": \"test\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_e19e4bb553424140a2e17300f9d64652"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617263165177,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_1d4fd6db30d44cf3a32d34bb096a8f7e",
+      "parentId": "fld_2eb98b586e1347ac872532fd0b119a35",
+      "modified": 1618063928553,
+      "created": 1617260533869,
+      "url": "http://localhost:8080/exec",
+      "name": "ECS::解析実行",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"srcfile\": \"210210-190757_UG_8.CSV\",\n\t\"uuid\": \"test\",\n\t\"window_size\": 500,\n\t\"overlap\": 10,\n\t\"min_port\": 40,\n\t\"max_port\": 50,\n\t\"start_window_num\": 6,\n\t\"finish_window_num\": 10,\n\t\"parallel\": true\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_0315555e708a4d8e92e0fe0204736b8f"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617263165127,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_6be6071a90f04fd19c0d7260c2364f52",
+      "parentId": "fld_2eb98b586e1347ac872532fd0b119a35",
+      "modified": 1618063926534,
+      "created": 1617780659268,
+      "url": "http://localhost:8080/concat",
+      "name": "ECS::ファイル結合",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"uuid\": \"test\",\n\t\"resfiles\": [\n\t\t\"test-1.csv\",\n\t\t\"test-6.csv\"\n\t]\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_38e46d8de7994327b227f623448be4c7"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617263165077,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_8d509084dd224f94b78f427c9451cdcd",
+      "parentId": "fld_a901182448094ab49c8c41f80133153b",
+      "modified": 1618064133540,
+      "created": 1617269509442,
+      "url": "http://{{ _.FACADE_HOST }}/tasklist",
+      "name": "タスク一覧",
+      "description": "",
+      "method": "GET",
+      "body": {},
+      "parameters": [],
+      "headers": [],
+      "authentication": {},
+      "metaSortKey": -1617847472770,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "fld_a901182448094ab49c8c41f80133153b",
+      "parentId": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "modified": 1618063602692,
+      "created": 1618063602692,
+      "name": "Facade",
+      "description": "",
+      "environment": {},
+      "environmentPropertyOrder": null,
+      "metaSortKey": -1618063602692,
+      "_type": "request_group"
+    },
+    {
+      "_id": "req_7ff59dd11fa344dd9f13cfb52ceff49e",
+      "parentId": "fld_a901182448094ab49c8c41f80133153b",
+      "modified": 1618064152885,
+      "created": 1617847472719,
+      "url": "http://{{ _.FACADE_HOST }}/runtask",
+      "name": "解析実行",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"uuid\": \"28fd6095-a1ae-44ef-bb22-a152487b1113\",\n\t\"window_size\": 500,\n\t\"overlap\": 10,\n\t\"min_port\": 40,\n\t\"max_port\": 50,\n\t\"parallel_num\": 1\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_bc2d4b5ff167426e9acd5e2cb33753d0"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617847472720,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_5a0fc4f3a213473d931fa4db5641366d",
+      "parentId": "fld_a901182448094ab49c8c41f80133153b",
+      "modified": 1618064160880,
+      "created": 1617265796284,
+      "url": "http://{{ _.FACADE_HOST }}/task",
+      "name": "特定タスク",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"uuid\": \"1\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_bde3d5e2182d4dbc83991eef48cc45a0"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617847472645,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_c733ae88cbe44744b0674998f2cf4e06",
+      "parentId": "fld_a901182448094ab49c8c41f80133153b",
+      "modified": 1618064169389,
+      "created": 1617782626151,
+      "url": "http://{{ _.FACADE_HOST }}/runmetaext",
+      "name": "メタ抽出",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"uuid\": \"28fd6095-a1ae-44ef-bb22-a152487b1113\"\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_9a18307ee75044969bb06c182be55797"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617847472620,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "req_3e25f5d81b3548c7ac5b16a5c7836ea3",
+      "parentId": "fld_a901182448094ab49c8c41f80133153b",
+      "modified": 1618064177812,
+      "created": 1617790314677,
+      "url": "http://{{ _.FACADE_HOST }}/finish",
+      "name": "終了処理",
+      "description": "",
+      "method": "POST",
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n\t\"uuid\": \"28fd6095-a1ae-44ef-bb22-a152487b1113\",\n\t\"parallel\": true\n}"
+      },
+      "parameters": [],
+      "headers": [
+        {
+          "name": "Content-Type",
+          "value": "application/json",
+          "id": "pair_d511724cee604dd78ea959a99974e0b0"
+        }
+      ],
+      "authentication": {},
+      "metaSortKey": -1617847472570,
+      "isPrivate": false,
+      "settingStoreCookies": true,
+      "settingSendCookies": true,
+      "settingDisableRenderRequestBody": false,
+      "settingEncodeUrl": true,
+      "settingRebuildPath": true,
+      "settingFollowRedirects": "global",
+      "_type": "request"
+    },
+    {
+      "_id": "env_e5464951c3ae7eb405ed028fc7953be1255fc43b",
+      "parentId": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "modified": 1616666782739,
+      "created": 1616666611427,
+      "name": "Base Environment",
+      "data": {
+        "HOST": "rg9s54nne5.execute-api.us-east-1.amazonaws.com"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "HOST"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1616666611427,
+      "_type": "environment"
+    },
+    {
+      "_id": "jar_e5464951c3ae7eb405ed028fc7953be1255fc43b",
+      "parentId": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "modified": 1616666611431,
+      "created": 1616666611431,
+      "name": "Default Jar",
+      "cookies": [],
+      "_type": "cookie_jar"
+    },
+    {
+      "_id": "spc_460f1c52f6df45338f28d4cca95b94e6",
+      "parentId": "wrk_c3cb45956c544667ae8b0edfe2db5c01",
+      "modified": 1616666611274,
+      "created": 1616666611274,
+      "fileName": "STARS",
+      "contents": "",
+      "contentType": "yaml",
+      "_type": "api_spec"
+    },
+    {
+      "_id": "env_a296a3a40e764f44aaccea64f8749681",
+      "parentId": "env_e5464951c3ae7eb405ed028fc7953be1255fc43b",
+      "modified": 1618064059840,
+      "created": 1618063948418,
+      "name": "Prod",
+      "data": {
+        "FACADE_HOST": "api.nemesis.rpaka.dev"
+      },
+      "dataPropertyOrder": {
+        "&": [
+          "FACADE_HOST"
+        ]
+      },
+      "color": null,
+      "isPrivate": false,
+      "metaSortKey": 1618063948418,
+      "_type": "environment"
+    }
+  ]
+}
