@@ -5,6 +5,8 @@ project(app LANGUAGES CXX C)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_FLAGS "-std=c++20")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fexceptions") # Ubuntu（Dockerコンテナ）用
+set(CMAKE_PREFIX_PATH /usr/lib/x86_64-linux-gnu/cmake/) # Ubuntu（Dockerコンテナ）用
 
 # WindowsがSDKのインストール済みライブラリを見つけることができる場所を設定します。
 if(MSVC)
@@ -34,9 +36,6 @@ if(MSVC AND BUILD_SHARED_LIBS)
     message(STATUS ">>CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
     message(STATUS ">>EXECUTABLE_OUTPUT_PATH : ${EXECUTABLE_OUTPUT_PATH}")
 endif()
-
-# set_compiler_flags(${PROJECT_NAME} -fexceptions) # 例外を無効にする
-# set_compiler_warnings(${PROJECT_NAME})
 
 # ライブラリをリンク
 target_link_libraries(${PROJECT_NAME} ${AWSSDK_LINK_LIBRARIES})
