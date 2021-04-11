@@ -19,7 +19,8 @@
   },
   "scripts": {
     "start": "SASS_PATH=./node_modules react-scripts start",
-    "build": "SASS_PATH=./node_modules react-scripts build"
+    "build": "SASS_PATH=./node_modules react-scripts build",
+    "deploy": "aws s3 cp ./build s3://nemesis-front --recursive"
   },
   "eslintConfig": {
     "extends": [
