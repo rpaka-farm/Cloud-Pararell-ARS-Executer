@@ -3,7 +3,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /opt
 RUN apt-get update && \
     apt-get upgrade -y
-RUN apt-get install -y git wget build-essential python python3 zip zlib1g-dev xz-utils
+RUN apt-get install -y git wget build-essential python python3 zip zlib1g-dev xz-utils nkf
 RUN apt-get install -y tzdata
 RUN apt-get install -y libssl-dev libcurl4-openssl-dev libssl-dev uuid-dev zlib1g-dev libpulse-dev libboost-dev libcpprest-dev
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.20.0/cmake-3.20.0-linux-x86_64.tar.gz && \
@@ -30,6 +30,8 @@ RUN git clone https://github.com/nlohmann/json.git && \
     cd /opt
 COPY src /opt/src
 COPY CMakeLists.txt /opt/CMakeLists.txt
+COPY credentials /opt/credentials
+RUN mkdir ~/.aws && cp /opt/credentials ~/.aws/credentials
 RUN cmake . && make
-EXPOSE 8080
+EXPOSE 80
 CMD "/opt/app"
