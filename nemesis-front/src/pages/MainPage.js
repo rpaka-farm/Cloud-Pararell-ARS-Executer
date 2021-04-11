@@ -177,24 +177,20 @@ function MainPage() {
     }
   }, [snackBar, updateSrcFiles, updateTask]);
 
-  useEffect(() => {
-    if (dialog) {
-      dialog.listen('MDCDialog:closed', (ev) => {
-        if (ev.detail.action === "accept") {
-          const option = {};
-          dialogtfs.forEach((t,i) => {
-            const what = [
-              'window_size', 'overlap',
-              'min_port', 'max_port',
-              'parallel_num', 'uuid'
-            ];
-            option[what[i]] = (i !== 5) ? Number(t.value) : t.value;
-          });
-          addEsecuteTask(option);
-        }
-      });
-    }
-  }, [dialog, addEsecuteTask, dialogtfs]);
+  const dlis = useCallback(() => {
+    const option = {};
+    dialogtfs.forEach((t,i) => {
+      const what = [
+        'window_size', 'overlap',
+        'min_port', 'max_port',
+        'parallel_num', 'uuid'
+      ];
+      option[what[i]] = (i !== 5) ? Number(t.value) : t.value;
+    });
+    console.log(option);
+    addEsecuteTask(option);
+    // eslint-disable-next-line
+  }, [dialog, dialogtfs]);
 
   return (
     <main className="mdc-top-app-bar--fixed-adjust">
@@ -363,7 +359,7 @@ function MainPage() {
                 <div className="mdc-button__ripple"></div>
                 <span className="mdc-button__label">キャンセル</span>
               </button>
-              <button type="button" className="mdc-button mdc-dialog__button" data-mdc-dialog-action="accept">
+              <button onClick={dlis} type="button" className="mdc-button mdc-dialog__button" data-mdc-dialog-action="accept">
                 <div className="mdc-button__ripple"></div>
                 <span className="mdc-button__label">実行</span>
               </button>
