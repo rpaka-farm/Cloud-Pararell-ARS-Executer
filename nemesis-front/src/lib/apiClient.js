@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const FACADE_HOST = 'http://localhost:3031';
+// const FACADE_HOST = 'http://localhost:3031';
+const FACADE_HOST = 'https://api.nemesis.rpaka.dev';
 
 async function extract(fn) {
   try {
