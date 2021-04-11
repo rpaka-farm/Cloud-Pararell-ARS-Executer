@@ -10,3 +10,4 @@ package-lock.json
 test.js
 *.csv
 test.cpp
+credentials
