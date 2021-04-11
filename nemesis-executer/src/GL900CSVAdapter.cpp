@@ -86,7 +86,7 @@ std::string GL900CSVAdapter::getSpecificColItemOfRow(std::ifstream &ifs, int col
   return str_buf;
 }
 
-void GL900CSVAdapter::extractTime(std::ifstream &ifs, int row, std::chrono::system_clock::time_point &tp_t, int &tp_ms)
+void GL900CSVAdapter::extractTime(std::ifstream &ifs, int row, std::string &tp_t, int &tp_ms)
 {
   std::string str_date_buf, str_time_buf, str_timems_buf;
 
@@ -97,13 +97,14 @@ void GL900CSVAdapter::extractTime(std::ifstream &ifs, int row, std::chrono::syst
   str_time_buf = this->getSpecificColItemOfRow(ifs, this->DT_TIME_COL);
   this->seekToSpecificRow(ifs, row);
   str_timems_buf = this->getSpecificColItemOfRow(ifs, this->DT_TIMEMS_COL);
-  std::stringstream ss_start(str_date_buf + " " + str_time_buf);
-  ss_start >> std::get_time(&tm_i, "%Y/%m/%d %H:%M:%S");
-  if (ss_start.fail())
-  {
-    throw std::string("INVALID_TIME_FORMAT");
-  }
-  tp_t = std::chrono::system_clock::from_time_t(std::mktime(&tm_i));
+  // std::stringstream ss_start(str_date_buf + " " + str_time_buf);
+  // ss_start >> std::get_time(&tm_i, "%Y/%m/%d %H:%M:%S");
+  // if (ss_start.fail())
+  // {
+  //   throw std::string("INVALID_TIME_FORMAT");
+  // }
+  // tp_t = std::chrono::system_clock::from_time_t(std::mktime(&tm_i));
+  tp_t = str_date_buf + " " + str_time_buf;
   tp_ms = std::stoi(str_timems_buf);
 }
 
@@ -120,6 +121,7 @@ metadata GL900CSVAdapter::extractMetaData()
 
   try
   {
+    std::cout << "1" << std::endl;
     ifs = this->getStream();
     std::string str_buf;
     int nstr;
@@ -128,6 +130,7 @@ metadata GL900CSVAdapter::extractMetaData()
     this->seekToSpecificRow(ifs, this->META_MEASURE_NUM_ROW);
     str_buf = this->getSpecificColItemOfRow(ifs, this->META_MEASURE_NUM_COL);
     md.sampleNum = stoi(str_buf);
+    std::cout << "2" << std::endl;
 
     //測定間隔
     this->seekToSpecificRow(ifs, this->META_MEASURE_INTERVAL_ROW);
@@ -140,28 +143,32 @@ metadata GL900CSVAdapter::extractMetaData()
       throw std::string("INVALID_MEASURE_UNIT");
     }
     md.measureInterval = std::chrono::microseconds(std::stoi(mitvValue));
+    std::cout << "3" << std::endl;
 
     std::string str_date_buf, str_time_buf, str_timems_buf;
 
     //開始時刻・終了時刻
-    std::chrono::system_clock::time_point tp_t;
+    std::string tp_t;
     int tp_ms;
     this->extractTime(ifs, this->DATA_START_ROW, tp_t, tp_ms);
+    std::cout << "4" << std::endl;
     md.start = tp_t;
     md.start_ms = tp_ms;
     this->extractTime(ifs, this->DATA_FINISH_ROW, tp_t, tp_ms);
+    std::cout << "5" << std::endl;
     md.finish = tp_t;
     md.finish_ms = tp_ms;
   }
   catch (std::string e)
   {
     ifs.close();
-    throw std::string("INVALID_FILE");
+    std::cout << e << std::endl;
+    throw std::string("INVALID_FILE[A]");
   }
   catch (std::invalid_argument e)
   {
     ifs.close();
-    throw std::string("INVALID_FILE");
+    throw std::string("INVALID_FILE[B]");
   }
   ifs.close();
   return md;

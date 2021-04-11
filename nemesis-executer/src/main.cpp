@@ -1,5 +1,7 @@
 #include <filesystem>
 #include <future>
+#include <chrono>
+#include <thread>
 #include <aws/core/Aws.h>
 #include <aws/core/utils/Outcome.h>
 #include <aws/s3/S3Client.h>
@@ -30,7 +32,7 @@ using namespace http::experimental::listener;
 using namespace web::http::client;
 namespace fs = std::filesystem;
 
-std::string facadeHost = "http://localhost:3031";
+std::string facadeHost = "https://api.nemesis.rpaka.dev";
 
 int status;
 Aws::SDKOptions aws_options;
@@ -155,12 +157,14 @@ void extractMetaData(nlohmann::json request_data)
 
     GL900CSVAdapter ad = GL900CSVAdapter(srcfile);
     metadata md = ad.extractMetaData();
-    auto ts = std::chrono::system_clock::to_time_t(md.start);
-    auto tf = std::chrono::system_clock::to_time_t(md.finish);
+    // auto ts = std::chrono::system_clock::to_time_t(md.start);
+    // auto tf = std::chrono::system_clock::to_time_t(md.finish);
     meta["sampleNum"] = md.sampleNum;
     meta["measureInterval"] = std::to_string(md.measureInterval.count());
-    meta["start"] = std::ctime(&ts);
-    meta["finish"] = std::ctime(&tf);
+    // meta["start"] = std::ctime(&ts);
+    // meta["finish"] = std::ctime(&tf);
+    meta["start"] = md.start;
+    meta["finish"] = md.finish;
 
     Aws::String update_expression("SET #a = :valueA, #b = :valueB, #c = :valueC");
     Aws::DynamoDB::Model::AttributeValue attributeUpdatedValueA;
@@ -295,21 +299,30 @@ void executeAnalysis(nlohmann::json request_data)
     }
 
     status = 0;
+    std::cout << "Exec FINISH" << std::endl;
 
-    pplx::create_task([uuid, parallel] {
-      http_client client(facadeHost + "/finish");
-      nlohmann::json reqcontent;
-      reqcontent["uuid"] = uuid;
-      reqcontent["parallel"] = parallel;
-      return client.request(methods::POST, "", reqcontent.dump(), "application/json");
-    }).then([](http_response response) {
+    http_client_config cfg;
+    cfg.set_timeout(std::chrono::seconds(10));
+    http_client client(facadeHost + "/finish", cfg);
+    nlohmann::json reqcontent;
+    reqcontent["uuid"] = uuid;
+    reqcontent["parallel"] = parallel;
+    try
+    {
+      http_response response = client.request(methods::POST, "", reqcontent.dump(), "application/json").get();
       std::cout << "Finish POST was sent" << std::endl;
       if (response.status_code() == status_codes::OK)
       {
         std::cout << "Finish POST was OK" << std::endl;
         // return response.extract_json();
       }
-    });
+      std::cout << "FINISH POST" << std::endl;
+    }
+    catch (http_exception e)
+    {
+      std::cout << "Network Error" << std::endl;
+      throw std::string("NETWORK_ERROR");
+    }
   }
   catch (std::string e)
   {
@@ -397,9 +410,11 @@ void concatResFiles(nlohmann::json request_data)
   }
 }
 
+CommandHandler handler;
+
 int main(int argc, char **argv)
 {
-  std::string port = "8080";
+  std::string port = "80";
   try
   {
     if (argc > 1)
@@ -414,15 +429,21 @@ int main(int argc, char **argv)
   try
   {
     Aws::InitAPI(aws_options);
-    utility::string_t address = U("http://localhost:" + port);
+    utility::string_t address = U("http://0.0.0.0:" + port);
     uri_builder uri(address);
     auto addr = uri.to_uri().to_string();
-    CommandHandler handler(addr);
+    handler = CommandHandler(addr);
     handler.open().wait();
     ucout << utility::string_t(U("Listening for requests at: ")) << addr << std::endl;
     ucout << U("Press ENTER key to quit...") << std::endl;
+    ucout << U("Revision 5") << std::endl;
     std::string line;
-    std::getline(std::cin, line);
+    // std::getline(std::cin, line);
+    set_sig_handlers();
+    while (true)
+    {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
     Aws::ShutdownAPI(aws_options);
     handler.close().wait();
   }
@@ -455,6 +476,7 @@ void sig_handler(int signo)
     printf("received SIGTERM\n");
   }
   Aws::ShutdownAPI(aws_options);
+  handler.close().wait();
   exit(0);
 }
 

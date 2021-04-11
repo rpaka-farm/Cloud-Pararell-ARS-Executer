@@ -12,9 +12,9 @@ struct metadata
 {
   int sampleNum;
   std::chrono::microseconds measureInterval;
-  std::chrono::system_clock::time_point start;
+  std::string start;
   int start_ms;
-  std::chrono::system_clock::time_point finish;
+  std::string finish;
   int finish_ms;
 };
 
@@ -45,7 +45,7 @@ private:
   void seekToFinalRow(std::ifstream &ifs);
   void seekToSpecificRow(std::ifstream &ifs, int row);
   std::string getSpecificColItemOfRow(std::ifstream &ifs, int col);
-  void extractTime(std::ifstream &ifs, int row, std::chrono::system_clock::time_point &tp_t, int &tp_ms);
+  void extractTime(std::ifstream &ifs, int row, std::string &tp_t, int &tp_ms);
 
 public:
   GL900CSVAdapter(fs::path csvFilePath);
