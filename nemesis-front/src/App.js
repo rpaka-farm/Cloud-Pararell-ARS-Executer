@@ -4,12 +4,14 @@ import {MDCTopAppBar} from '@material/top-app-bar';
 
 //ページコンポーネント
 import MainPage from './pages/MainPage';
+import WelcomePage from './pages/WelcomePage'
+import AboutPage from './pages/AboutPage'
 
 function App() {
   const pages = {
     welcome: {
       name: 'ようこそ',
-      component: <div>ようこそ</div>
+      component: <WelcomePage />
     },
     main: {
       name: '解析',
@@ -17,7 +19,7 @@ function App() {
     },
     about: {
       name: 'Nemesisについて',
-      component: <div>Nemesisについて</div>
+      component: <AboutPage />
     }
   };
 
@@ -33,7 +35,7 @@ function App() {
         <aside className="mdc-drawer">
           <div className="mdc-drawer__header">
             <h3 className="mdc-drawer__title">Nemesis</h3>
-            <h6 className="mdc-drawer__subtitle">アルファ版</h6>
+            <h6 className="mdc-drawer__subtitle">アルファ版 v0.2.0</h6>
           </div>
           <div className="mdc-drawer__content">
             <nav className="mdc-list">
