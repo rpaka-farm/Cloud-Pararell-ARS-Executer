@@ -2,7 +2,6 @@ const AWS = require('aws-sdk');
 const uuid = require('uuid');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const debug = require('debug')('debug-name');
 dotenv.config();
 
 /*
@@ -52,7 +51,6 @@ async function main(event, context) {
         var s3 = new AWS.S3({region: 'us-east-1'});
         const s3testRes = await s3.getObject(params).promise();
       } catch (e) {
-        debug(e);
         return makeResponse({
           success: false,
           reason: "解析対象ファイルが見つかりませんでした"
@@ -334,22 +332,23 @@ async function findContainerDomain() {
   const infos = [];
 
   var params = {
-    cluster: "STARS-Cluster", 
+    cluster: "Nemesis", 
   };
   const taskList = await ecs.listTasks(params).promise();
-  const re = new RegExp("(STARS-Cluster/)(.+)$");
-  const taskUuids = taskList.taskArns.map((task) => {
-    const reres = re.exec(task);
-    if (reres.length == 3) {
-      return reres[2];
-    } else {
-      return null;
-    }
-  });
+  if (taskList.taskArns && taskList.taskArns.length > 0) {
+    const re = new RegExp("(Nemesis/)(.+)$");
 
-  if (taskUuids.length > 0) {
+    const taskUuids = taskList.taskArns.map((task) => {
+      const reres = re.exec(task);
+      if (reres.length == 3) {
+        return reres[2];
+      } else {
+        return null;
+      }
+    });
+
     var params = {
-      cluster: "STARS-Cluster",
+      cluster: "Nemesis",
       tasks: taskUuids
     };
     const taskInfos = await ecs.describeTasks(params).promise();
@@ -375,8 +374,8 @@ async function changeContainerNums(containerNum) {
   const ecs = new AWS.ECS({region: 'us-east-1'});
   var params = {
     desiredCount: containerNum,
-    cluster: "STARS-Cluster",
-    service: "STARS-Container-service"
+    cluster: "Nemesis",
+    service: "Nemesis-Executer"
   };
   await ecs.updateService(params).promise();
   return true;
