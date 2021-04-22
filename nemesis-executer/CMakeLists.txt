@@ -20,7 +20,7 @@ find_package(AWSSDK REQUIRED COMPONENTS s3 dynamodb)
 find_package(nlohmann_json REQUIRED)
 find_package(cpprestsdk REQUIRED)
 
-add_executable(${PROJECT_NAME} src/main.cpp src/GL900CSVAdapter.cpp src/STARS.cpp src/ARS.cpp src/NKF.cpp src/USignalDataCSVAdapter.cpp src/USTARSSpectrumCSVAdapter.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp src/GL900CSVAdapter.cpp ARS/cpp/STARS.cpp ARS/cpp/ARS.cpp src/NKF.cpp src/USignalDataCSVAdapter.cpp src/USTARSSpectrumCSVAdapter.cpp)
 
 include_directories(${OPENSSL_INCLUDE_DIR})
 

@@ -1,0 +1,3 @@
+[submodule "nemesis-executer/ARS"]
+	path = nemesis-executer/ARS
+	url = https://github.com/ritsu2891/ARS.git

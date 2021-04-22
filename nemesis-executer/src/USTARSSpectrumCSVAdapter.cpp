@@ -2,7 +2,7 @@
 #include <iostream>
 #include <algorithm>
 #include "USTARSSpectrumCSVAdapter.hpp"
-#include "STARS.hpp"
+#include "../ARS/cpp/STARS.hpp"
 
 std::string rawFileName(fs::path path)
 {

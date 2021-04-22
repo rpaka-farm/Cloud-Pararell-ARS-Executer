@@ -1,6 +1,6 @@
 #include <vector>
 #include <filesystem>
-#include "STARS.hpp"
+#include "../ARS/cpp/STARS.hpp"
 
 #ifndef USTARSSpectrumCSVAdapter_H
 #define USTARSSpectrumCSVAdapter_H

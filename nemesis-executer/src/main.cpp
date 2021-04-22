@@ -21,8 +21,8 @@
 #include "GL900CSVAdapter.hpp"
 #include "USignalDataCSVAdapter.hpp"
 #include "USTARSSpectrumCSVAdapter.hpp"
-#include "ARS.hpp"
-#include "STARS.hpp"
+#include "../ARS/cpp/ARS.hpp"
+#include "../ARS/cpp/STARS.hpp"
 #include "StatusDefinition.hpp"
 
 using namespace web;
